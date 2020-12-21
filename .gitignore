@@ -1,3 +1,7 @@
+# Secret files
+secrets
+*.secret*
+
 # Logs
 logs
 *.log

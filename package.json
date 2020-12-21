@@ -1,0 +1,64 @@
+{
+  "name": "sharefile-node-api",
+  "version": "0.0.0",
+  "description": "Unofficial Node based API for Sharefile",
+  "author": {
+    "name": "Justin Rowland",
+    "email": "jcrowland7@gmail.com",
+    "url": "https://github.com/jc-rowland"
+  },
+  "license": "GPL-3.0",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jc-rowland/sharefile-node-api.git"
+  },
+  "main": "lib/sharefile-node-api.js",
+  "module": "lib/sharefile-node-api.js",
+  "files": [
+    "lib/sharefile-node-api.js"
+  ],
+  "scripts": {
+    "build": "webpack --mode=production",
+    "dev": "webpack-dev-server",
+    "test": "jest --config test/jest.conf.js --env=node",
+    "lint": "eslint --ext .js src test/unit",
+    "watch": "jest --watch --config test/jest.conf.js --env=node",
+    "prod": "npm run lint && npm run test && npm run build",
+    "npm:patch": "npm run prod && npm version patch && npm publish",
+    "npm:minor": "npm run prod && npm version minor && npm publish"
+  },
+  "keywords": [
+    "npm",
+    "package",
+    "boilerplate",
+    "node",
+    "javascript"
+  ],
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/plugin-proposal-class-properties": "^7.12.1",
+    "@babel/preset-env": "^7.12.11",
+    "babel-loader": "^8.2.2",
+    "eslint": "^7.16.0",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-config-standard": "^16.0.2",
+    "eslint-friendly-formatter": "^4.0.1",
+    "eslint-plugin-babel": "^5.3.1",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.3.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-webpack-plugin": "^2.4.1",
+    "jest": "^26.6.3",
+    "js-yaml": "^3.13.1",
+    "prettier": "^2.2.1",
+    "webpack": "^5.11.0",
+    "webpack-cli": "^4.2.0"
+  },
+  "dependencies": {
+    "axios": "^0.21.0",
+    "core-js": "^3.8.1",
+    "regenerator-runtime": "^0.13.7"
+  }
+}
