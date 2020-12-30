@@ -2,7 +2,6 @@
 const axios = require("axios");
 
 class ShareFileAPI {
-
   authenticate( auth = {
     subdomain:'', username:'', password:'', clientId:'', clientSecret:''
   } ) {
@@ -36,16 +35,16 @@ class ShareFileAPI {
           },
         })
         .then((result) => {
-          ShareFileAPI.httpConfig = {
+          this.httpConfig = {
             headers: {
               authorization: "Bearer " + result.data.access_token,
             },
           };
 
-          ShareFileAPI.cfg = {}
-          Object.assign(ShareFileAPI.cfg,result.data)
+          this.cfg = {}
+          Object.assign(this.cfg,result.data)
 
-          resolve(ShareFileAPI.cfg);
+          resolve(this.cfg);
         })
         .catch(err => {
           if (err.response && err.response.data && err.response.data.error_description) {
@@ -61,19 +60,20 @@ class ShareFileAPI {
     const basePath = `${this.apiPath}/Items`;
     const idPath = id ? `(${id})` : "";
     const data = await axios
-      .get(basePath + idPath, ShareFileAPI.httpConfig)
+      .get(basePath + idPath, this.httpConfig)
       .then((res) => {
         return res.data;
       })
       .catch((err) => {
         throw Error(err.response);
       });
-    return new SharefileItem(data);
+    return new SharefileItem(data, this.httpConfig);
   }
 }
 
 class SharefileItem {
-  constructor(values = {}) {
+  constructor(values = {}, httpConfig) {
+    this.httpConfig = httpConfig;
     Object.assign(this, values);
   }
 
@@ -86,7 +86,7 @@ class SharefileItem {
       .get(
         this.url +
           `/Download?redirect=${redirect}&includeallversions=${includeAllVersions}&includeDeleted=${includeDeleted}`,
-        ShareFileAPI.httpConfig
+        this.httpConfig
       )
       .then((res) => {
         if (redirect) {
@@ -101,31 +101,26 @@ class SharefileItem {
     return axios
       .get(
         this.url + `/Children?includeDeleted=${includeDeleted}`,
-        ShareFileAPI.httpConfig
+        this.httpConfig
       )
-      .then((res) => {
-        const itemList = res.data.value.map((item) => {
-          return new SharefileItem(item, ShareFileAPI.httpConfig);
-        });
-        return itemList;
-      });
+      .then((res) => res.data.value.map((item) => new SharefileItem(item, this.httpConfig)));
   }
 
   async childBy(propName = "", propVal = "", includeDeleted = false) {
     const item = await this.children(includeDeleted).then((list) => {
       return list.find((item) => item[propName] === propVal);
     });
-    return new SharefileItem(item, ShareFileAPI.httpConfig);
+    return new SharefileItem(item, this.httpConfig);
   }
 
   async childByName(name, includeDeleted) {
     const item = await this.childBy("Name", name, includeDeleted);
-    return new SharefileItem(item, ShareFileAPI.httpConfig);
+    return new SharefileItem(item, this.httpConfig);
   }
 
   async childById(id, includeDeleted) {
     const item = await this.childBy("Id", id, includeDeleted);
-    return new SharefileItem(item, ShareFileAPI.httpConfig);
+    return new SharefileItem(item, this.httpConfig);
   }
 }
 
