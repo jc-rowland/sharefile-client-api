@@ -3,10 +3,8 @@ import "regenerator-runtime/runtime";
 import ShareFileAPI from '../../../src/sharefile-node-api.js'
 import credentials from '../../config/config.js'
 
-const happySF = new ShareFileAPI();
-let happyHomeFolder;
-
 it('Happy path', () => {
+  const happySF = new ShareFileAPI();
   expect(happySF).toBeTruthy()
 })
 
@@ -28,22 +26,28 @@ it('Fails authentication - bad client id/secret', async () => {
 })
 
 it('Throws on no creds', async () => {
-  const SF = new ShareFileAPI()
+  const SF = new ShareFileAPI();
   await expect(SF.authenticate()).rejects.toBeTruthy();
 })
 
 it('Authenticates correctly', async () => {
-  const res = await happySF.authenticate(credentials.good)
+  const SF = new ShareFileAPI()
+  const res = await SF.authenticate(credentials.good)
   expect(res.access_token).toBeTruthy();
-  expect(happySF.httpConfig).toBeTruthy();
+  expect(SF.httpConfig).toBeTruthy();
 
 })
 
 it('Gets home Folder', async ()=>{
-  happyHomeFolder = await happySF.items();
+  const SF = new ShareFileAPI();
+  await SF.authenticate(credentials.good);
+  const happyHomeFolder = await SF.items();
   expect(happyHomeFolder['odata.type']==='ShareFile.Api.Models.Folder').toBeTruthy()
 })
 
 it('Gets Home Folder - Children', async()=>{
-await expect(happyHomeFolder.children()).resolves.toBeTruthy();
+  const SF = new ShareFileAPI()
+  await SF.authenticate(credentials.good)
+  const happyHomeFolder = await SF.items();
+  await expect(happyHomeFolder.children()).resolves.toBeTruthy();
 })
