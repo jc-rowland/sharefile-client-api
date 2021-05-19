@@ -7,13 +7,14 @@ const TerserPlugin = require("terser-webpack-plugin");
 const ESLintPlugin = require('eslint-webpack-plugin');
 
 module.exports = {
+  target: 'node',
   entry: {
-    app: "./src/index.js",
+    index: "./src/index.js",
   },
   devtool: "source-map",
   output: {
     filename: outputFile,
-    path: path.resolve(__dirname, "lib"),
+    path: path.resolve(__dirname, "dist"),
     library: libraryName,
     libraryTarget: "umd",
     globalObject: "this",
@@ -24,7 +25,7 @@ module.exports = {
     fallback: { "querystring": false }
   },
   devServer: {
-    contentBase: path.join(__dirname, "lib"),
+    contentBase: path.join(__dirname, "dist"),
     open: "Google Chrome",
     openPage: libraryName,
     hot: true,

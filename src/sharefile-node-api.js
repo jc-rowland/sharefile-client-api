@@ -1,28 +1,36 @@
 "use strict";
 const axios = require("axios");
-
+const {SharefileItem} = require('./models/index.js')
+/**
+ *
+ *
+ * @class ShareFileAPI
+ */
 class ShareFileAPI {
+  /**
+   * Authenticates API with Sharefile.
+   *
+   * @param {object} auth
+   * @param {string} auth.subdomain
+   * @param {string} auth.username
+   * @param {string} auth.password
+   * @param {string} auth.clientId
+   * @param {string} auth.clientSecret
+   * @return {ShareFileAPI} 
+   * @memberof ShareFileAPI
+   */
   authenticate( auth = {
     subdomain:'', username:'', password:'', clientId:'', clientSecret:''
   } ) {
+
     return new Promise((resolve, reject) => {
 
-      if(auth.subdomain === ''){
-        throw Error('subdomain prop required')
-      }
-      if(auth.username === ''){
-        throw Error('username prop required')
-      }
-      if(auth.password === ''){
-        throw Error('password prop required')
-      }
-      if(auth.clientId === ''){
-        throw Error('clientId prop required')
-      }
-      if(auth.clientSecret === ''){
-        throw Error('clientSecret prop required')
-      }
-
+      const requiredProps = ['subdomain','username','password','clientId','clientSecret'];
+      requiredProps.forEach(prop=>{
+        if(auth[prop] === ''){
+          throw Error(`Prop [${prop}] is required`)
+        }
+      })
 
       this.apiPath = `https://${auth.subdomain}.sf-api.com/sf/v3`;
 
@@ -49,8 +57,9 @@ class ShareFileAPI {
         .catch(err => {
           if (err.response && err.response.data && err.response.data.error_description) {
             reject(err.response.data.error_description);
+          }else{
+            reject(err);
           }
-          reject(err);
         });
     });
   
@@ -71,76 +80,7 @@ class ShareFileAPI {
   }
 }
 
-class SharefileItem {
-  constructor(values = {}, httpConfig) {
-    this.httpConfig = httpConfig;
-    Object.assign(this, values);
-  }
 
-  download(
-    redirect = false,
-    includeAllVersions = false,
-    includeDeleted = false
-  ) {
-    return axios
-      .get(
-        this.url +
-          `/Download?redirect=${redirect}&includeallversions=${includeAllVersions}&includeDeleted=${includeDeleted}`,
-        this.httpConfig
-      )
-      .then((res) => {
-        if (redirect) {
-          return res;
-        } else {
-          return new DownloadSpecification(res.data);
-        }
-      });
-  }
 
-  children(includeDeleted = false) {
-    return axios
-      .get(
-        this.url + `/Children?includeDeleted=${includeDeleted}`,
-        this.httpConfig
-      )
-      .then((res) => res.data.value.map((item) => new SharefileItem(item, this.httpConfig)));
-  }
-
-  async childBy(propName = "", propVal = "", includeDeleted = false) {
-    const item = await this.children(includeDeleted).then((list) => {
-      return list.find((item) => item[propName] === propVal);
-    });
-    return new SharefileItem(item, this.httpConfig);
-  }
-
-  async childByName(name, includeDeleted) {
-    const item = await this.childBy("Name", name, includeDeleted);
-    return new SharefileItem(item, this.httpConfig);
-  }
-
-  async childById(id, includeDeleted) {
-    const item = await this.childBy("Id", id, includeDeleted);
-    return new SharefileItem(item, this.httpConfig);
-  }
-}
-
-class DownloadSpecification {
-  constructor(
-    values = {
-      DownloadToken: "",
-      DownloadUrl: "",
-      DownloadPrepStatusURL: "",
-      "odata.metadata": "",
-      "odata.type": "",
-    }
-  ) {
-    this.token = values.DownloadToken;
-    this.url = values.DownloadUrl;
-    this.prepStatus = values.DownloadPrepStatusURL;
-    this.odata = {};
-    this.odata.metadata = values["odata.metadata"];
-    this.odata.type = values["odata.type"];
-  }
-}
 
 module.exports = ShareFileAPI;
