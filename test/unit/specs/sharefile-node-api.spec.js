@@ -1,6 +1,6 @@
-import "regenerator-runtime/runtime";
-import ShareFileAPI from '../../../src/sharefile-node-api.js'
-import credentials from '../../config/config.js'
+require("regenerator-runtime/runtime");
+const credentials = require('../../config/config.js').default;
+const {ShareFileAPI} = require('../../../src/sharefile-node-api.js');
 
 it('Happy path', () => {
   const happySF = new ShareFileAPI();
@@ -49,4 +49,14 @@ it('Gets Home Folder - Children', async()=>{
   await SF.authenticate(credentials.good)
   const happyHomeFolder = await SF.items();
   await expect(happyHomeFolder.children()).resolves.toBeTruthy();
+})
+
+it.only('Gets Folder By Path', async()=>{
+  const SF = new ShareFileAPI(credentials.good)
+  await SF.authenticate()
+  const happyHomeFolder = await SF.itemsByPath('/Shared Folders/Scans').then(res=>{
+    console.log("RES",res)
+  }).catch(err=>{
+    console.log("ERR",err)
+  });
 })

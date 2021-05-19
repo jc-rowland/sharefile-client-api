@@ -1,8 +1,3 @@
-const path = require('path')
-function resolveSrc (_path) {
-  return path.join(__dirname, _path)
-}
-
 const aliases = {
   '@': 'src',
   'src': 'src',
