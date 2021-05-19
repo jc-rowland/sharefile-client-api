@@ -83,4 +83,4 @@ class ShareFileAPI {
 
 
 
-module.exports = ShareFileAPI;
+module.exports = {ShareFileAPI};
