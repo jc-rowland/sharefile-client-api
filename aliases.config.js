@@ -10,12 +10,10 @@ const aliases = {
 }
 
 module.exports = {
-  webpack: {},
   jest: {}
 }
 
 Object.entries(aliases)
   .forEach(([alias, route]) => {
-    module.exports.webpack[alias] = resolveSrc(route)
     module.exports.jest[`^${alias}/(.*)$`] = `<rootDir>/${route}/$1`
   })

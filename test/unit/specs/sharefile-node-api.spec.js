@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import ShareFileAPI from '../../../src/sharefile-node-api.js'
 import credentials from '../../config/config.js'
