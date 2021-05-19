@@ -49,15 +49,15 @@ const axios = require("axios");
  class SharefileItem {
   /**
    * Creates an instance of SharefileItem.
-   * @param {*} [values={}] JSON body of item as received from Sharefile
+   * @param {*} [body={}] JSON body of item as received from Sharefile
    * @param {*} httpConfig
    * @memberof SharefileItem
    */
-  constructor(values = {}, httpConfig) {
+  constructor(body = {}, httpConfig) {
     /** @private */
     this.httpConfig = httpConfig;
 
-    Object.assign(this, values);
+    Object.assign(this, body);
   }
 
   /**
@@ -87,6 +87,18 @@ const axios = require("axios");
           return new DownloadSpecification(res.data);
         }
       });
+  }
+
+  parent(){
+    return axios
+      .get(
+        this.url + `/Items(${this.id})/Parent`,
+        this.httpConfig
+      )
+      // .then((res) =>
+      //   res.data.value.map((item) => new SharefileItem(item, this.httpConfig))
+      // );
+  
   }
 
   /**
