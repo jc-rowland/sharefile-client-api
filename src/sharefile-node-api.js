@@ -125,7 +125,6 @@ async itemsByPath(path){
   const httpConfig = await this.getHttpConfig();
 
     const uri = `${this.apiPath}/Items/ByPath?path=${path}`;
-    console.log("GETTT",uri)
     return axios
       .get(uri, httpConfig)
       .then(({data}) => {
