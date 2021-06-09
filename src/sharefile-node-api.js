@@ -1,82 +1,138 @@
 "use strict";
 const axios = require("axios");
 const {SharefileItem} = require('./models/index.js')
+
+/**
+ * @typedef SharefileAuth
+ * @property {string} subdomain
+ * @property {string} username
+ * @property {string} password
+ * @property {string} clientId
+ * @property {string} clientSecret
+ */
+
 /**
  *
  *
  * @class ShareFileAPI
  */
 class ShareFileAPI {
-  /**
-   * Authenticates API with Sharefile.
-   *
-   * @param {object} auth
-   * @param {string} auth.subdomain
-   * @param {string} auth.username
-   * @param {string} auth.password
-   * @param {string} auth.clientId
-   * @param {string} auth.clientSecret
-   * @return {ShareFileAPI} 
-   * @memberof ShareFileAPI
-   */
-  authenticate( auth = {
-    subdomain:'', username:'', password:'', clientId:'', clientSecret:''
-  } ) {
-
-    return new Promise((resolve, reject) => {
-
-      const requiredProps = ['subdomain','username','password','clientId','clientSecret'];
+/**
+ * Creates an instance of ShareFileAPI.
+ * @param {SharefileAuth} auth
+ * @memberof ShareFileAPI
+ */
+constructor(auth){
+    const requiredProps = ['subdomain','username','password','clientId','clientSecret'];
       requiredProps.forEach(prop=>{
-        if(auth[prop] === ''){
+        if(!auth[prop] || auth[prop] === ''){
           throw Error(`Prop [${prop}] is required`)
         }
       })
+      this.auth = auth;
+  }
 
-      this.apiPath = `https://${auth.subdomain}.sf-api.com/sf/v3`;
+  get apiPath(){
+    return `https://${this.auth.subdomain}.sf-api.com/sf/v3`
+  }
 
-      const config = `grant_type=password&username=${auth.username}&password=${auth.password}&client_id=${auth.clientId}&client_secret=${auth.clientSecret}`;
+  async getHttpConfig(){
+    let accessToken = this.access_token
+    if(!this.access_token){
+      accessToken = await this.authenticate()
+    }
+    return {
+      headers: {
+        authorization: "Bearer " + accessToken,
+      },
+    };
+  }
 
-      axios
-        .post(`https://${auth.subdomain}.sharefile.com/oauth/token`, config, {
+  /**
+   * Authenticates API with Sharefile.
+   *
+   * @return {string} Returns token as string
+   * @memberof ShareFileAPI
+   */
+  authenticate() {
+
+      const config = `grant_type=password&username=${this.auth.username}&password=${this.auth.password}&client_id=${this.auth.clientId}&client_secret=${this.auth.clientSecret}`;
+
+      return axios
+        .post(`https://${this.auth.subdomain}.sharefile.com/oauth/token`, config, {
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
         })
         .then((result) => {
-          this.httpConfig = {
-            headers: {
-              authorization: "Bearer " + result.data.access_token,
-            },
-          };
-
-          this.cfg = {}
-          Object.assign(this.cfg,result.data)
-
-          resolve(this.cfg);
+          this.access_token = result.data.access_token;
+          return result.data.access_token
         })
         .catch(err => {
-          if (err.response && err.response.data && err.response.data.error_description) {
-            reject(err.response.data.error_description);
-          }else{
-            reject(err);
-          }
+          throw err
         });
-    });
   
   }
 
-  async items(id) {
+/**
+ * Returns a single Item. 
+ * 
+ * Special Id's: [home, favorites, allshared, connectors, box, top]
+ * 
+ * > home - Return home folder. 
+ * 
+ * > favorites - Return parent favorite item; ex: .../Items(favorites)/Children to get the favorite folders. 
+ * 
+ * > allshared - Return parent Shared Folders item; ex: .../Items(allshared)/Children to get the shared folders. 
+ * 
+ * > connectors - Return parent Connectors item; ex: .../Items(connectors)/Children to get indiviual connectors. 
+ * 
+ * > box - Return the FileBox folder. 
+ * 
+ * > top - Returns the Top item; ex: .../Items(top)/Children to get the home, favorites, and shared folders as well as the connectors
+ *
+ * @param {string} id
+ * @return {Promise<SharefileItem>}
+ * @memberof ShareFileAPI
+ */
+async items(id) {
+  const httpConfig = await this.getHttpConfig();
+
     const basePath = `${this.apiPath}/Items`;
     const idPath = id ? `(${id})` : "";
-    const data = await axios
-      .get(basePath + idPath, this.httpConfig)
-      .then((res) => {
-        return res.data;
+    return axios
+      .get(basePath + idPath, httpConfig)
+      .then(({data}) => {
+        return new SharefileItem(data, httpConfig)
       })
       .catch((err) => {
-        throw Error(err.response);
+        throw err;
       });
-    return new SharefileItem(data, this.httpConfig);
+  }
+
+/**
+ * Retrieves an item from its path. 
+ * 
+ * The path is of format /foldername/foldername/filename
+ * 
+ * This call may redirect the client to another API provider, if the path contains a symbolic link.
+ *
+ * @param {string} path -  ex: "/Shared Folders/Some Other Folder/somefile.ext"
+ * @return {Promise<SharefileItem>}
+ * @memberof ShareFileAPI
+ */
+async itemsByPath(path){
+  const httpConfig = await this.getHttpConfig();
+
+    const uri = `${this.apiPath}/Items/ByPath?path=${path}`;
+    return axios
+      .get(uri, httpConfig)
+      .then(({data}) => {
+        return new SharefileItem(data, httpConfig)
+      })
+      .catch((err) => {
+        throw err;
+      });
   }
 }
 
