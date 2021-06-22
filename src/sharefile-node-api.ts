@@ -1,34 +1,12 @@
 "use strict";
-const axios = require("axios");
-const {SharefileItem} = require('./models/index.js')
+import axios, { AxiosError } from 'axios'
+const querystring = require('querystring');
 
-/**
- * @typedef SharefileAuth
- * @property {string} subdomain
- * @property {string} username
- * @property {string} password
- * @property {string} clientId
- * @property {string} clientSecret
- */
-
-/**
- *
- *
- * @class ShareFileAPI
- */
 class ShareFileAPI {
-/**
- * Creates an instance of ShareFileAPI.
- * @param {SharefileAuth} auth
- * @memberof ShareFileAPI
- */
-constructor(auth){
-    const requiredProps = ['subdomain','username','password','clientId','clientSecret'];
-      requiredProps.forEach(prop=>{
-        if(!auth[prop] || auth[prop] === ''){
-          throw Error(`Prop [${prop}] is required`)
-        }
-      })
+auth:Sharefile_Api_Auth;
+access_token:string;
+
+constructor(auth:Sharefile_Api_Auth){
       this.auth = auth;
   }
 
@@ -64,11 +42,11 @@ constructor(auth){
             "Content-Type": "application/x-www-form-urlencoded",
           },
         })
-        .then((result) => {
+        .then((result:Sharefile_Login_Response) => {
           this.access_token = result.data.access_token;
           return result.data.access_token
         })
-        .catch(err => {
+        .catch((err:AxiosError) => {
           throw err
         });
   
@@ -92,16 +70,19 @@ constructor(auth){
  * > top - Returns the Top item; ex: .../Items(top)/Children to get the home, favorites, and shared folders as well as the connectors
  *
  * @param {string} id
+ * @param {string} queryParams
  * @return {Promise<SharefileItem>}
  * @memberof ShareFileAPI
  */
-async items(id) {
+async items(id,queryParams=null) {
+
   const httpConfig = await this.getHttpConfig();
 
     const basePath = `${this.apiPath}/Items`;
     const idPath = id ? `(${id})` : "";
+    const query = queryParams?'?'+querystring.stringify(queryParams):''
     return axios
-      .get(basePath + idPath, httpConfig)
+      .get(basePath + idPath + query, httpConfig)
       .then(({data}) => {
         return new SharefileItem(data, httpConfig)
       })
@@ -135,8 +116,5 @@ async itemsByPath(path){
       });
   }
 }
-
-
-
 
 module.exports = {ShareFileAPI};
