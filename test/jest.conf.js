@@ -7,6 +7,7 @@ module.exports = {
     '^.+\\.js$': '<rootDir>/node_modules/babel-jest'
   },
   testEnvironment: 'node',
+  testTimeout: 50000,
   moduleNameMapper: require('../aliases.config.js').jest,
   transformIgnorePatterns: ['<rootDir>/node_modules/']
 }

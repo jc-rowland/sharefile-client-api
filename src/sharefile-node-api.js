@@ -75,7 +75,7 @@ constructor(auth){
   }
 
 /**
- * Returns a single Item. 
+ * Takes an Item ID and returns a single Item. 
  * 
  * Special Id's: [home, favorites, allshared, connectors, box, top]
  * 
