@@ -1,5 +1,7 @@
 const DownloadSpecification = require('./download-spec.js')
+const UploadSpecification = require('./upload-spec.js')
 const axios = require("axios");
+const FormData = require('form-data');
 
 /**
  * Represents a ShareFile Item: an element that can exist inside a ShareFile Folder.
@@ -66,7 +68,7 @@ const axios = require("axios");
    * @param {boolean} [redirect=false] Redirect to download link if set to true (default), or return a DownloadSpecification if set to false
    * @param {boolean} [includeAllVersions=false] For folder downloads only, includes old versions of files in the folder in the zip when true, current versions only when false (default)
    * @param {boolean} [includeDeleted=false] For FINRA or other archive enabled account only, Super User can set includeDelete=true to download archived item. The default value of includeDeleted is false
-   * @return {DownloadSpecification|string} the download link or DownloadSpecification for the this item.
+   * @return {DownloadSpecification|string} the download link or DownloadSpecification for this item.
    * @memberof SharefileItem
    */
   download(
@@ -159,6 +161,27 @@ const axios = require("axios");
   async childById(id, includeDeleted) {
     const item = await this.childBy("Id", id, includeDeleted);
     return new SharefileItem(item, this.httpConfig);
+  }
+
+/**
+ *
+ *
+ * @param {String|Buffer} contents
+ * @param {String} filename
+ * @return {String} 
+ * @memberof SharefileItem
+ */
+async upload(contents,filename){
+    const ops = {
+      Method: "standard",
+      Raw:true,
+      FileName: filename
+    }
+    const url = this.url + `/Upload2`;
+
+    const uploadSpec = await axios.post(url,ops,this.httpConfig).then(({data})=>new UploadSpecification(data));
+
+    return await uploadSpec.upload(contents);
   }
 }
 

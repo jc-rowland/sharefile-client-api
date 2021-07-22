@@ -4,23 +4,25 @@
  *
  *
  * @class DownloadSpecification
+ * @property {String} token
  */
 class DownloadSpecification {
   constructor(
     values = {
-      DownloadToken: "",
-      DownloadUrl: "",
-      DownloadPrepStatusURL: "",
-      "odata.metadata": "",
-      "odata.type": "",
+      DownloadToken         : "",
+      DownloadUrl           : "",
+      DownloadPrepStatusURL : "",
+      "odata.metadata"      : "",
+      "odata.type"          : "",
     }
-  ) {
-    this.token = values.DownloadToken;
-    this.url = values.DownloadUrl;
-    this.prepStatus = values.DownloadPrepStatusURL;
-    this.odata = {};
-    this.odata.metadata = values["odata.metadata"];
-    this.odata.type = values["odata.type"];
+  ) 
+  {
+    this.token          = values.DownloadToken;         
+    this.url            = values.DownloadUrl;           
+    this.prepStatus     = values.DownloadPrepStatusURL; 
+    this.odata          = {};                           
+    this.odata.metadata = values["odata.metadata"];     
+    this.odata.type     = values["odata.type"];         
   }
 }
 
