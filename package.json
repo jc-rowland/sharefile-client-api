@@ -1,6 +1,6 @@
 {
   "name": "@jc-rowland/sharefile-node-api",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Unofficial Node based API for Sharefile",
   "author": "Justin Rowland <jcrowland7@gmail.com> (https://github.com/jc-rowland)",
   "license": "GPL-3.0",
@@ -52,6 +52,7 @@
     "@types/axios": "^0.14.0",
     "@types/node": "^15.12.4",
     "axios": "^0.21.0",
+    "detect-content-type": "^1.2.0",
     "cross-env": "^7.0.3",
     "dotenv": "^10.0.0",
     "regenerator-runtime": "^0.13.7"

@@ -1,5 +1,6 @@
 require("regenerator-runtime/runtime");
 const credentials = require('../../config/config.js').default;
+const paths = require('../../config/secrets/paths')
 const {ShareFileAPI} = require('../../../src/sharefile-node-api.js');
 
 it('Happy path', () => {
@@ -51,7 +52,7 @@ it('Gets Home Folder - Children', async()=>{
   await expect(happyHomeFolder.children()).resolves.toBeTruthy();
 })
 
-it.only('Gets Folder By Path', async()=>{
+it('Gets Folder By Path', async()=>{
   const SF = new ShareFileAPI(credentials.good)
   await SF.authenticate()
   const happyHomeFolder = await SF.itemsByPath('/Shared Folders/Scans').then(res=>{
@@ -60,3 +61,16 @@ it.only('Gets Folder By Path', async()=>{
     console.log("ERR",err)
   });
 })
+
+it('Uploads File to Folder', async()=>{
+  const SF = new ShareFileAPI(credentials.good)
+  await SF.authenticate();
+  const uploadFolderID = paths.uploadTestFolderID;
+
+  const uploadFolder = await SF.items(uploadFolderID);
+  const res = await uploadFolder.upload("Test!!!");
+
+  console.log("RES",res)
+
+})
+
