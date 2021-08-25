@@ -2,6 +2,32 @@ const DownloadSpecification = require('./download-spec.js')
 const UploadSpecification = require('./upload-spec.js')
 const axios = require("axios");
 const FormData = require('form-data');
+const {stringify} = require('querystring')
+const isItemID = require('../helpers/is-item-id.js')
+
+
+/**
+ * @typedef SFAPI_UpdateItemBody
+* @property {String} [Name]
+* @property {String} [FileName]
+* @property {String} [Description]
+* @property {String} [ExpirationDate]
+* @property {Object} [Parent]
+* @property {Object} [Parent.Id]
+* @property {Object} [Zone]
+* @property {Object} [Zone.Id]
+*
+ */
+
+/**
+ * @typedef {Object} SFAPI_UpdateItemQuery
+* @property {String} [batchid] - 	String	BatchID for Async Operation
+* @property {Number} [batchSizeInBytes] - 	Int64	Async Operation size in bytes
+* @property {Boolean} [forceSync] - 	Boolean	Indicates whether operation is to be executed synchronously
+* @property {Boolean} [scheduleAsync] - 	Boolean	Indicates whether operation is to be scheduled for Bot processing
+* @property {Boolean} [resolveFolderNameConflict] - 	Boolean	Rename the folder if there is a conflict
+* @property {Boolean} [notify] - 	Boolean	Indicates whether an email should be sent to users subscribed to Upload Notifications
+ */
 
 /**
  * Represents a ShareFile Item: an element that can exist inside a ShareFile Folder.
@@ -173,15 +199,58 @@ const FormData = require('form-data');
  */
 async upload(contents,filename){
     const ops = {
-      Method: "standard",
-      Raw:true,
-      FileName: filename
+      Method   : "standard",
+      Raw      : true,
+      FileName : filename
     }
     const url = this.url + `/Upload2`;
 
     const uploadSpec = await axios.post(url,ops,this.httpConfig).then(({data})=>new UploadSpecification(data));
 
     return await uploadSpec.upload(contents);
+  }
+
+  // async copy(toID){
+
+  // }
+
+  /**
+   * 
+   * @param {String} toID - Folder ID of folder to move file to
+   * @return {Promise<SharefileItem>} 
+   */
+  move(toID){
+    return this.update({"Parent":{"Id":toID}})
+  }
+
+   /**
+   * 
+   * @param {String} newName
+   * @return {Promise<SharefileItem>} 
+   */
+  rename(newName){return this.update({"Name":newName})}
+
+/**
+ *
+ * @param {SFAPI_UpdateItemBody} updateBody
+ * @param {SFAPI_UpdateItemQuery} query
+ * @return {Promise<SharefileItem>} 
+ * @memberof SharefileItem
+ */
+update(updateBody,query){
+    const queryObj = { 
+      overwrite                 : false
+    } 
+    const querystring = stringify(Object.assign(queryObj,query))
+    const url = this.url + `?${querystring}`;
+
+    return axios.patch(url,updateBody,this.httpConfig).then(({data})=>{
+      if(data.Name && data.Hash){
+        return Object.assign(this,data)
+      }else{
+        return data
+      }
+    })
   }
 }
 

@@ -1,6 +1,7 @@
 "use strict";
 const axios = require("axios");
-const {SharefileItem} = require('./models/index.js')
+const {SharefileItem} = require('./models/index.js');
+const isItemID = require('./helpers/is-item-id.js')
 
 /**
  * @typedef SharefileAuth
@@ -75,7 +76,7 @@ constructor(auth){
   }
 
 /**
- * Takes an Item ID and returns a single Item. 
+ * Takes an Item ID/PAth and returns a single SharefileItem. 
  * 
  * Special Id's: [home, favorites, allshared, connectors, box, top]
  * 
@@ -91,15 +92,18 @@ constructor(auth){
  * 
  * > top - Returns the Top item; ex: .../Items(top)/Children to get the home, favorites, and shared folders as well as the connectors
  *
- * @param {string} id
+ * @param {string} str - ID or Path of Sharefile Item
  * @return {Promise<SharefileItem>}
  * @memberof ShareFileAPI
  */
-async items(id) {
+async items(str) {
+  if(!isItemID(str)){
+    return this.itemsByPath(str)
+  }
   const httpConfig = await this.getHttpConfig();
 
     const basePath = `${this.apiPath}/Items`;
-    const idPath = id ? `(${id})` : "";
+    const idPath = str ? `(${str})` : "";
     return axios
       .get(basePath + idPath, httpConfig)
       .then(({data}) => {
