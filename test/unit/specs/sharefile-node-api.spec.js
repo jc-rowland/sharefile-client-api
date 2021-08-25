@@ -31,23 +31,22 @@ it('Throws on no creds', async () => {
 })
 
 it('Authenticates correctly', async () => {
-  const SF = new ShareFileAPI()
+  const SF = new ShareFileAPI(credentials.good)
   const res = await SF.authenticate(credentials.good)
-  expect(res.access_token).toBeTruthy();
-  expect(SF.httpConfig).toBeTruthy();
-
+  console.log(res)
+  expect(res).toBeTruthy();
 })
 
 it('Gets home Folder', async ()=>{
-  const SF = new ShareFileAPI();
-  await SF.authenticate(credentials.good);
+  const SF = new ShareFileAPI(credentials.good);
+  await SF.authenticate();
   const happyHomeFolder = await SF.items();
   expect(happyHomeFolder['odata.type']==='ShareFile.Api.Models.Folder').toBeTruthy()
 })
 
 it('Gets Home Folder - Children', async()=>{
-  const SF = new ShareFileAPI()
-  await SF.authenticate(credentials.good)
+  const SF = new ShareFileAPI(credentials.good)
+  await SF.authenticate()
   const happyHomeFolder = await SF.items();
   await expect(happyHomeFolder.children()).resolves.toBeTruthy();
 })
@@ -55,7 +54,7 @@ it('Gets Home Folder - Children', async()=>{
 it('Gets Folder By Path', async()=>{
   const SF = new ShareFileAPI(credentials.good)
   await SF.authenticate()
-  const happyHomeFolder = await SF.itemsByPath('/Shared Folders/Scans').then(res=>{
+  const happyHomeFolder = await SF.itemsByPath('/Shared Folders/Skin').then(res=>{
     console.log("RES",res)
   }).catch(err=>{
     console.log("ERR",err)
@@ -74,3 +73,37 @@ it('Uploads File to Folder', async()=>{
 
 })
 
+it('Renames File', async()=>{
+  const SF = new ShareFileAPI(credentials.good);
+
+  const fileName = "test.txt";
+  const newName = "renamed.txt";
+
+  const testFilePath = "Personal Folders/TestUpload/"+fileName
+  const file = await SF.itemsByPath(testFilePath);
+  await file.rename(newName)
+  expect(file.Name).toBe(newName)
+  await file.rename(fileName)
+  expect(file.Name).toBe(fileName)
+
+})
+
+it('Moves File', async()=>{
+  const SF = new ShareFileAPI(credentials.good);
+
+  const fromFolderPath = "Personal Folders/TestUpload/";
+  const fromFolderID = await SF.itemsByPath(fromFolderPath).then(file=>file.Id);
+
+  const toFolderPath = "Personal Folders/TestScans/";
+  const toFolderID = await SF.itemsByPath(toFolderPath).then(file=>file.Id);
+
+  const fileName = "test.txt";
+
+  const testFilePath = "Personal Folders/TestUpload/"+fileName
+  const file = await SF.itemsByPath(testFilePath);
+  await file.move(toFolderID);
+  expect(file.Parent.Id).toBe(toFolderID);
+  await file.move(fromFolderID);
+  expect(file.Parent.Id).toBe(fromFolderID);
+
+})
