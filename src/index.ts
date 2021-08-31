@@ -1,3 +1,2 @@
-require("regenerator-runtime/runtime");
-// Library export
-module.exports = ShareFileAPI
+import ShareFileAPI from  "./sharefile-node-api"
+export default ShareFileAPI

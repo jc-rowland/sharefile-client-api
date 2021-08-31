@@ -1,29 +1,33 @@
 "use strict";
 
-/**
- *
- *
- * @class DownloadSpecification
- * @property {String} token
- */
+interface HttpResponse_DownloadSpecification {
+    DownloadToken         : string
+    DownloadUrl           : string
+    DownloadPrepStatusURL : string
+    "odata.metadata"      : string
+    "odata.type"          : string
+  }
+
+
 class DownloadSpecification {
-  constructor(
-    values = {
-      DownloadToken         : "",
-      DownloadUrl           : "",
-      DownloadPrepStatusURL : "",
-      "odata.metadata"      : "",
-      "odata.type"          : "",
-    }
-  ) 
+  readonly token:       string  = "";
+  readonly url:         string  = "";
+  readonly prepStatus:  string  = "";
+  readonly odata:       OData   = {
+    metadata: "",
+    type: ""
+  };
+
+  constructor(x : HttpResponse_DownloadSpecification) 
   {
-    this.token          = values.DownloadToken;         
-    this.url            = values.DownloadUrl;           
-    this.prepStatus     = values.DownloadPrepStatusURL; 
-    this.odata          = {};                           
-    this.odata.metadata = values["odata.metadata"];     
-    this.odata.type     = values["odata.type"];         
+    this.token          = x.DownloadToken;         
+    this.url            = x.DownloadUrl;           
+    this.prepStatus     = x.DownloadPrepStatusURL; 
+    this.odata          = {
+      metadata: x["odata.metadata"],
+      type: x["odata.type"]
+    };                           
   }
 }
 
-module.exports = DownloadSpecification
+export default DownloadSpecification

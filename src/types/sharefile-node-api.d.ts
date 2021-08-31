@@ -9,3 +9,8 @@ declare interface Sharefile_Login_Response {
     h: string; // A SHA-256 HMAC digest of the path and query string signed with your client secret for validation that the values came from ShareFile.
   };
 }
+
+declare type OData = {
+  metadata: string;
+  type: string;
+}

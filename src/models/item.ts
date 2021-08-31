@@ -1,22 +1,18 @@
-// const DownloadSpecification = require('./download-spec.js')
-// const axios = require("axios");
+import DownloadSpecification from './download-spec';
+import UploadSpecification from './upload-spec';
+import axios from 'axios';
 
-/**
- * Represents a ShareFile Item: an element that can exist inside a ShareFile Folder.
- * This include Files and Folders, as well as other classes that are listed inside
- * directory structures: Links, Notes and Symbolic Links.
- **/
  class SharefileItem {
+   httpConfig = {}
+   url = ""
   /**
    * Creates an instance of SharefileItem.
-   * @param {*} [body={}] JSON body of item as received from Sharefile
-   * @param {*} httpConfig
    * @memberof SharefileItem
    */
-  constructor(body = {}, httpConfig) {
+  constructor(body: ShareFileResponse_Item, httpConfig:any) {
     /** @private */
     this.httpConfig = httpConfig;
-
+    this.url = ""
     Object.assign(this, body);
   }
 
@@ -55,9 +51,9 @@
         this.url + `/Items(${this.id})/Parent`,
         this.httpConfig
       )
-      // .then((res) =>
-      //   res.data.value.map((item) => new SharefileItem(item, this.httpConfig))
-      // );
+      .then((res) =>
+        res.data.value.map((item:ShareFileResponse_Item) => new SharefileItem(item, this.httpConfig))
+      );
   
   }
 
@@ -75,24 +71,22 @@
         this.httpConfig
       )
       .then((res) =>
-        res.data.value.map((item) => new SharefileItem(item, this.httpConfig))
+        res.data.value.map((item:ShareFileResponse_Item) => new SharefileItem(item, this.httpConfig))
       );
   }
 
   /**
    * Gets first Child based on a given property.
-   *
-   * @param     {string}  [propName=""] Prop that will be searched on
-   * @param     {string}  [propVal=""] Search string
-   * @param     {boolean} [includeDeleted=false] Specifies whether or not the list of items returned should include deleted children
-   * @return    {SharefileItem} The Child object
-   * @memberof  SharefileItem
    */
-  async childBy(propName = "", propVal = "", includeDeleted = false) {
-    const item = await this.children(includeDeleted).then((list) => {
+  async childBy(propName:keyof ShareFileResponse_Item, propVal:any, includeDeleted = false) {
+    const item = await this.children(includeDeleted).then((list:Array<ShareFileResponse_Item>) => {
       return list.find((item) => item[propName] === propVal);
     });
-    return new SharefileItem(item, this.httpConfig);
+    if(!item){
+      return undefined
+    }else{
+      return new SharefileItem(item, this.httpConfig);
+    }
   }
 
   /**
@@ -103,9 +97,13 @@
    * @return    {SharefileItem} The Child object
    * @memberof  SharefileItem
    */
-  async childByName(name, includeDeleted) {
+  async childByName(name:string, includeDeleted:boolean) {
     const item = await this.childBy("Name", name, includeDeleted);
-    return new SharefileItem(item, this.httpConfig);
+    if(!item){
+      return undefined
+    }else{
+      return new SharefileItem(item, this.httpConfig);
+    }
   }
 
   /**
@@ -120,6 +118,27 @@
     const item = await this.childBy("Id", id, includeDeleted);
     return new SharefileItem(item, this.httpConfig);
   }
+
+  /**
+ *
+ *
+ * @param {String|Buffer} contents
+ * @param {String} filename
+ * @return {String} 
+ * @memberof SharefileItem
+ */
+async upload(contents,filename){
+  const ops = {
+    Method: "standard",
+    Raw:true,
+    FileName: filename
+  }
+  const url = this.url + `/Upload2`;
+
+  const uploadSpec = await axios.post(url,ops,this.httpConfig).then(({data})=>new UploadSpecification(data));
+
+  return await uploadSpec.upload(contents);
+}
 }
 
-module.exports = SharefileItem
+export default  SharefileItem

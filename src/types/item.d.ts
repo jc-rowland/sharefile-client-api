@@ -1,4 +1,5 @@
-declare interface ShareFile_Api_Item {
+declare interface ShareFileResponse_Item {
+  id:                         String;
   Name                      : String;          //	Item Name
   FileName                  : String;          //	Item File Name. ShareFile allows Items to have different Display and File names: display names are shown during client navigation, while file names are used when the item is downloaded.
   Creator                   : User;            //	User that Created this Item
@@ -37,12 +38,4 @@ declare interface ShareFile_Api_Item {
   Statuses                  : Array;           //  List of external statuses associated with this Item
   Favorite                  : Favorite;        //	Favorite item object associated with the item
   SemanticPath              : String;          //	Item Path using Folder names
-}
-
-declare interface Sharefile_Api_Auth {
-  subdomain   : "string";
-  username    : "string";
-  password    : "string";
-  clientId    : "string";
-  clientSecret: "string";
 }

@@ -1,6 +1,26 @@
-"use strict";
-import axios, { AxiosError } from 'axios'
-const querystring = require('querystring');
+import axios, { AxiosError }  from 'axios'
+import querystring            from 'querystring';
+import SharefileItem          from './models/item'
+
+interface Sharefile_Api_Auth {
+  subdomain   : String;
+  username    : String;
+  password    : String;
+  clientId    : String;
+  clientSecret: String;
+}
+
+declare interface Sharefile_Login_Response {
+  data: {
+    access_token: string; // Returns an access code or access token, depending on which was requested.
+    state: string; // The optional value that was passed to the authorization page.
+    subdomain: string; // The user’s ShareFile subdomain, i.e. if they access their ShareFile account through https://mycompany.sharefile.com , this value would return “mycompany”. Some username / password combinations may be active on multiple accounts. The user would need to choose an account in this case.
+    apicp: string; // The user's ShareFile API control plane, i.e. sharefile.com, securevdr.com, etc.
+    appcp: string; // The user's ShareFile account control plane, i.e. sharefile.com, securevdr.com, etc.
+    expires_in: number; // The expiration time in seconds.
+    h: string; // A SHA-256 HMAC digest of the path and query string signed with your client secret for validation that the values came from ShareFile.
+  };
+}
 
 class ShareFileAPI {
 auth:Sharefile_Api_Auth;
@@ -8,6 +28,7 @@ access_token:string;
 
 constructor(auth:Sharefile_Api_Auth){
       this.auth = auth;
+      this.access_token = ""
   }
 
   get apiPath(){
@@ -74,7 +95,7 @@ constructor(auth:Sharefile_Api_Auth){
  * @return {Promise<SharefileItem>}
  * @memberof ShareFileAPI
  */
-async items(id,queryParams=null) {
+async items(id:string,queryParams:any =null) {
 
   const httpConfig = await this.getHttpConfig();
 
@@ -102,7 +123,7 @@ async items(id,queryParams=null) {
  * @return {Promise<SharefileItem>}
  * @memberof ShareFileAPI
  */
-async itemsByPath(path){
+async itemsByPath(path:string){
   const httpConfig = await this.getHttpConfig();
 
     const uri = `${this.apiPath}/Items/ByPath?path=${path}`;
@@ -117,4 +138,4 @@ async itemsByPath(path){
   }
 }
 
-module.exports = {ShareFileAPI};
+export default ShareFileAPI;
