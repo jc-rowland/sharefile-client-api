@@ -31,6 +31,15 @@ constructor(auth){
         }
       })
       this.auth = auth;
+      this.token_expires_on = null;
+  }
+
+  get isTokenExpired(){
+    if(!this.token_expires_on){
+      return true
+    }else{
+      return new Date()>=this.token_expires_on
+    }
   }
 
   get apiPath(){
@@ -39,7 +48,7 @@ constructor(auth){
 
   async getHttpConfig(){
     let accessToken = this.access_token
-    if(!this.access_token){
+    if(!this.access_token || this.isTokenExpired){
       accessToken = await this.authenticate()
     }
     return {
@@ -66,7 +75,8 @@ constructor(auth){
           },
         })
         .then((result) => {
-          this.access_token = result.data.access_token;
+          this.token_expires_on = new Date(new Date().getTime() + result.data.expires_in) 
+          this.access_token     = result.data.access_token;
           return result.data.access_token
         })
         .catch(err => {
