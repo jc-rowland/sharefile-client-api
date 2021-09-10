@@ -1,6 +1,6 @@
 {
   "name": "@jc-rowland/sharefile-node-api",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Unofficial Node based API for Sharefile",
   "author": "Justin Rowland <jcrowland7@gmail.com> (https://github.com/jc-rowland)",
   "license": "GPL-3.0",
