@@ -1,7 +1,16 @@
+
 require("regenerator-runtime/runtime");
 const credentials = require('../../config/config.js').default;
 const paths = require('../../config/secrets/paths')
 const {ShareFileAPI} = require('../../../src/sharefile-node-api.js');
+
+function sleep(milliseconds) {
+  const date = Date.now();
+  let currentDate = null;
+  do {
+    currentDate = Date.now();
+  } while (currentDate - date < milliseconds);
+}
 
 it('Happy path', () => {
   const happySF = new ShareFileAPI();
@@ -35,6 +44,19 @@ it('Authenticates correctly', async () => {
   const res = await SF.authenticate(credentials.good)
   console.log(res)
   expect(res).toBeTruthy();
+})
+
+it.only('Token refreshes after it expires', async () => {
+  const SF = new ShareFileAPI(credentials.good)
+  const res = await SF.authenticate(credentials.good);
+  const origToken = await SF.getHttpConfig().then(res=>res.headers.authorization);
+  expect(SF.isTokenExpired).toBe(false);
+  const origTokenTwo = await SF.getHttpConfig().then(res=>res.headers.authorization);
+  expect(origToken===origTokenTwo).toBe(true);
+  await sleep(28800);
+  expect(SF.isTokenExpired).toBe(true);
+  const newToken = await SF.getHttpConfig().then(res=>res.headers.authorization)
+  expect(origToken===newToken).toBe(false)
 })
 
 it('Gets home Folder', async ()=>{
