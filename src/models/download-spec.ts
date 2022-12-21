@@ -1,4 +1,6 @@
 "use strict";
+import {ShareFileResponse} from '../types/sharefileresponse'
+import SharefileHTTP from '../http'
 
 interface HttpResponse_DownloadSpecification {
     DownloadToken         : string
@@ -13,7 +15,7 @@ class DownloadSpecification {
   readonly token:       string  = "";
   readonly url:         string  = "";
   readonly prepStatus:  string  = "";
-  readonly odata:       OData   = {
+  readonly odata:       ShareFileResponse.OData   = {
     metadata: "",
     type: ""
   };

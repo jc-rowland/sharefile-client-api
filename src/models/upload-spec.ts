@@ -1,6 +1,5 @@
 "use strict";
 
-const { axios }         = require("axios");
 const detectContentType = require("detect-content-type");
 const https             = require("https");
 const url               = require("url");
@@ -61,7 +60,7 @@ class UploadSpecification {
    * @return {*}
    * @memberof UploadSpecification
    */
-  async upload(contents) {
+  async upload(contents:string|Buffer) {
     if (!Buffer.isBuffer(contents)) {
       contents = Buffer.from(contents);
     }
@@ -75,7 +74,7 @@ class UploadSpecification {
         },
       };
 
-      const sfRequest = https.request(ops, function (response) {
+      const sfRequest = https.request(ops, function (response:any) {
         response.setEncoding("utf8");
         response.on("data" , resolve);
         response.on("error", reject);

@@ -1,76 +1,16 @@
-import axios, { AxiosError }  from 'axios'
-import querystring            from 'querystring';
-import SharefileItem          from './models/item'
+import SharefileItem          from './models/item';
+import {ShareFileResponse} from './types/sharefileresponse';
+import SharefileHTTP,{Sharefile_Api_Auth} from './http'
 
-interface Sharefile_Api_Auth {
-  subdomain   : String;
-  username    : String;
-  password    : String;
-  clientId    : String;
-  clientSecret: String;
-}
-
-declare interface Sharefile_Login_Response {
-  data: {
-    access_token: string; // Returns an access code or access token, depending on which was requested.
-    state: string; // The optional value that was passed to the authorization page.
-    subdomain: string; // The user’s ShareFile subdomain, i.e. if they access their ShareFile account through https://mycompany.sharefile.com , this value would return “mycompany”. Some username / password combinations may be active on multiple accounts. The user would need to choose an account in this case.
-    apicp: string; // The user's ShareFile API control plane, i.e. sharefile.com, securevdr.com, etc.
-    appcp: string; // The user's ShareFile account control plane, i.e. sharefile.com, securevdr.com, etc.
-    expires_in: number; // The expiration time in seconds.
-    h: string; // A SHA-256 HMAC digest of the path and query string signed with your client secret for validation that the values came from ShareFile.
-  };
-}
-
-class ShareFileAPI {
-auth:Sharefile_Api_Auth;
-access_token:string;
+class ShareFileAPI{
+  #http:SharefileHTTP
 
 constructor(auth:Sharefile_Api_Auth){
-      this.auth = auth;
-      this.access_token = ""
+    this.#http = new SharefileHTTP(auth)
   }
 
-  get apiPath(){
-    return `https://${this.auth.subdomain}.sf-api.com/sf/v3`
-  }
-
-  async getHttpConfig(){
-    let accessToken = this.access_token
-    if(!this.access_token){
-      accessToken = await this.authenticate()
-    }
-    return {
-      headers: {
-        authorization: "Bearer " + accessToken,
-      },
-    };
-  }
-
-  /**
-   * Authenticates API with Sharefile.
-   *
-   * @return {string} Returns token as string
-   * @memberof ShareFileAPI
-   */
-  authenticate() {
-
-      const config = `grant_type=password&username=${this.auth.username}&password=${this.auth.password}&client_id=${this.auth.clientId}&client_secret=${this.auth.clientSecret}`;
-
-      return axios
-        .post(`https://${this.auth.subdomain}.sharefile.com/oauth/token`, config, {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        })
-        .then((result:Sharefile_Login_Response) => {
-          this.access_token = result.data.access_token;
-          return result.data.access_token
-        })
-        .catch((err:AxiosError) => {
-          throw err
-        });
-  
+  connect(){
+    return this.#http.authenticate()
   }
 
 /**
@@ -95,21 +35,10 @@ constructor(auth:Sharefile_Api_Auth){
  * @return {Promise<SharefileItem>}
  * @memberof ShareFileAPI
  */
-async items(id:string,queryParams:any =null) {
-
-  const httpConfig = await this.getHttpConfig();
-
-    const basePath = `${this.apiPath}/Items`;
-    const idPath = id ? `(${id})` : "";
-    const query = queryParams?'?'+querystring.stringify(queryParams):''
-    return axios
-      .get(basePath + idPath + query, httpConfig)
-      .then(({data}) => {
-        return new SharefileItem(data, httpConfig)
-      })
-      .catch((err) => {
-        throw err;
-      });
+async items(id?:string,queryParams:any=null) {
+  const idPath = id ? `(${id})` : "";
+  return this.#http.get(`Items` + idPath,queryParams)
+    .then((data:ShareFileResponse.Item)=>new SharefileItem(data, this.#http))
   }
 
 /**
@@ -124,17 +53,8 @@ async items(id:string,queryParams:any =null) {
  * @memberof ShareFileAPI
  */
 async itemsByPath(path:string){
-  const httpConfig = await this.getHttpConfig();
-
-    const uri = `${this.apiPath}/Items/ByPath?path=${path}`;
-    return axios
-      .get(uri, httpConfig)
-      .then(({data}) => {
-        return new SharefileItem(data, httpConfig)
-      })
-      .catch((err) => {
-        throw err;
-      });
+  return this.#http.get('Items/ByPath',{path})
+    .then((data:ShareFileResponse.Item)=>new SharefileItem(data, this.#http))
   }
 }
 

@@ -38,6 +38,8 @@
     "@babel/preset-typescript": "^7.14.5",
     "@types/chai": "^4.2.21",
     "@types/mocha": "^9.0.0",
+    "@types/axios": "^0.14.0",
+    "@types/node": "^16.4.3",
     "babel-loader": "^8.2.2",
     "chai": "^4.3.4",
     "eslint": "^7.16.0",
@@ -56,8 +58,6 @@
     "typescript": "^4.3.4"
   },
   "dependencies": {
-    "@types/axios": "^0.14.0",
-    "@types/node": "^16.4.3",
     "axios": "^0.21.0",
     "cross-env": "^7.0.3",
     "detect-content-type": "^1.2.0",
