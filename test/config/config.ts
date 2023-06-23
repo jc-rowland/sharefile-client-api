@@ -1,4 +1,4 @@
-import creds from "./secrets/auth.js";
+import creds from "./secrets/auth";
 
 const BAD_STRING = "$_NOT_REAL_DATA_$"
 

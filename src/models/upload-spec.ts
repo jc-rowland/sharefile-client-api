@@ -1,47 +1,35 @@
 "use strict";
 
-const { axios }         = require("axios");
 const detectContentType = require("detect-content-type");
 const https             = require("https");
 const url               = require("url");
 
-/**
- * @typedef {Object} HTTPResponse_UploadSpecification
- * @property {String} Method
- * @property {String} ChunkUri
- * @property {String} ProgressData
- * @property {Boolean} IsResume
- * @property {Number} ResumeIndex
- * @property {Number} ResumeOffset
- * @property {String} ResumeFileHash
- * @property {Number} MaxNumberOfThreads
- * @property {Boolean} CanAcceptParamsInHeaders
- */
 
-/**
- *
- *
- * @class UploadSpecification
- * @property {String} token
- */
+interface HTTPResponse_UploadSpecification {
+  Method                   : string
+  ChunkUri                 : string
+  ProgressData             : string
+  IsResume                 : boolean
+  ResumeIndex              : number
+  ResumeOffset             : number
+  ResumeFileHash           : string
+  MaxNumberOfThreads       : number
+  CanAcceptParamsInHeaders : boolean
+}
+
 class UploadSpecification {
-  /**
-   * Creates an instance of UploadSpecification.
-   * @param {HTTPResponse_UploadSpecification} values
-   * @memberof UploadSpecification
-   */
+  readonly Method                  : string;
+  readonly ChunkUri                : string;
+  readonly ProgressData            : string;
+  readonly IsResume                : boolean;
+  readonly ResumeIndex             : number;
+  readonly ResumeOffset            : number;
+  readonly ResumeFileHash          : string;
+  readonly MaxNumberOfThreads      : number;
+  readonly CanAcceptParamsInHeaders: boolean;
+
   constructor(
-    values = {
-      Method                  : "Standard",
-      ChunkUri                : "",
-      ProgressData            : "",
-      IsResume                : false,
-      ResumeIndex             : 0,
-      ResumeOffset            : 0,
-      ResumeFileHash          : "",
-      MaxNumberOfThreads      : 4,
-      CanAcceptParamsInHeaders: false,
-    }
+    values :HTTPResponse_UploadSpecification
   ) {
     this.Method                   = values.Method;
     this.ChunkUri                 = values.ChunkUri;
@@ -72,7 +60,7 @@ class UploadSpecification {
    * @return {*}
    * @memberof UploadSpecification
    */
-  async upload(contents) {
+  async upload(contents:string|Buffer) {
     if (!Buffer.isBuffer(contents)) {
       contents = Buffer.from(contents);
     }
@@ -86,7 +74,7 @@ class UploadSpecification {
         },
       };
 
-      const sfRequest = https.request(ops, function (response) {
+      const sfRequest = https.request(ops, function (response:any) {
         response.setEncoding("utf8");
         response.on("data" , resolve);
         response.on("error", reject);
@@ -98,4 +86,4 @@ class UploadSpecification {
   }
 }
 
-module.exports = UploadSpecification;
+export default  UploadSpecification;
