@@ -1,6 +1,7 @@
 import SharefileItem          from './models/item';
-import {ShareFileResponse} from './types/sharefileresponse';
+import { ShareFileAPIModels } from './types/sharefile.api.models';
 import SharefileHTTP,{Sharefile_Api_Auth} from './http'
+import idOrPath from './utils/id-or-path';
 
 class ShareFileAPI{
   #http:SharefileHTTP
@@ -32,13 +33,15 @@ constructor(auth:Sharefile_Api_Auth){
  *
  * @param {string} id
  * @param {string} queryParams
- * @return {Promise<SharefileItem>}
  * @memberof ShareFileAPI
  */
 async items(id?:string,queryParams:any=null) {
+  if(id && idOrPath(id)==='path'){
+    return this.itemsByPath(id)
+  }
   const idPath = id ? `(${id})` : "";
   return this.#http.get(`Items` + idPath,queryParams)
-    .then((data:ShareFileResponse.Item)=>new SharefileItem(data, this.#http))
+    .then((data:ShareFileAPIModels.Item)=>new SharefileItem(data, this.#http,this))
   }
 
 /**
@@ -47,14 +50,12 @@ async items(id?:string,queryParams:any=null) {
  * The path is of format /foldername/foldername/filename
  * 
  * This call may redirect the client to another API provider, if the path contains a symbolic link.
- *
  * @param {string} path -  ex: "/Shared Folders/Some Other Folder/somefile.ext"
- * @return {Promise<SharefileItem>}
  * @memberof ShareFileAPI
  */
 async itemsByPath(path:string){
   return this.#http.get('Items/ByPath',{path})
-    .then((data:ShareFileResponse.Item)=>new SharefileItem(data, this.#http))
+    .then((data:ShareFileAPIModels.Item)=>new SharefileItem(data, this.#http, this))
   }
 }
 

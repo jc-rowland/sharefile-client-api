@@ -1,6 +1,5 @@
 "use strict";
 import {ShareFileResponse} from '../types/sharefileresponse'
-import SharefileHTTP from '../http'
 
 interface HttpResponse_DownloadSpecification {
     DownloadToken         : string

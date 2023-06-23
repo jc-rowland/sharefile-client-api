@@ -1,10 +1,10 @@
 import ShareFileAPI from "../../../src/sharefile-node-api";
 import credentials from "../../config/config";
-import paths from "../../config/secrets/paths";
+import {paths} from "../../config/secrets/paths";
 import { expect } from "chai";
 import "mocha";
 
-function sleep(milliseconds: Number) {
+function sleep(milliseconds: number) {
   const date = Date.now();
   let currentDate = null;
   do {
@@ -55,38 +55,22 @@ describe("ShareFileAPI", () => {
   it("Gets Folder By ID", async () => {
     const SF = new ShareFileAPI(credentials.good);
     const happyHomeFolder = await SF.items(paths.uploadTestFolderID);
-    expect(happyHomeFolder.FileName).to.equal("Test Folder");
+    expect(happyHomeFolder.FileName).to.equal("API Test");
   });
 
   it("Gets Folder By Path", async () => {
     const SF = new ShareFileAPI(credentials.good);
     const happyHomeFolder = await SF.itemsByPath(paths.uploadTestFolderPath);
-    expect(happyHomeFolder.FileName).to.equal("Test Folder");
+    expect(happyHomeFolder.FileName).to.equal("API Test");
   });
 
-  // it("Token refreshes after it expires", async () => {
-  //   const SF = new ShareFileAPI(credentials.good);
-  //   const res = await SF.authenticate();
-
-  //   const origToken = await SF.getHttpConfig().then(
-  //     (res) => res.headers.authorization
-  //   );
-  //   expect(SF.isTokenExpired).to.equal(false);
-
-  //   const origTokenTwo = await SF.getHttpConfig().then(
-  //     (res) => res.headers.authorization
-  //   );
-  //   expect(origToken === origTokenTwo).to.equal(true);
-
-  //   SF.access_token_expires = new Date();
-  //   await sleep(100);
-  //   expect(SF.isTokenExpired).to.equal(true);
-
-  //   const newToken = await SF.getHttpConfig().then(
-  //     (res) => res.headers.authorization
-  //   );
-  //   expect(origToken === newToken).to.equal(false);
-  // });
+  it("Gets Parent", async () => {
+    const SF = new ShareFileAPI(credentials.good);
+    const happyHomeFolder = await SF.itemsByPath(paths.uploadTestFolderPath);
+    expect(happyHomeFolder.FileName).to.equal("API Test");
+    const parentFolder = await happyHomeFolder.getParent();
+    expect(parentFolder.FileName).to.equal('Personal Folders');
+  });
 
   it("Shares token across items", async () => {
     const SF = new ShareFileAPI(credentials.good);
@@ -95,49 +79,42 @@ describe("ShareFileAPI", () => {
     expect(happyHomeFolder1.token).to.eq(happyHomeFolder2.token)
   });
 
-  it.only('Uploads File to Folder', async()=>{
+  it('Uploads File to Folder', async()=>{
     const SF = new ShareFileAPI(credentials.good)
     const uploadFolderID = paths.uploadTestFolderID;
+    const uploadFilename = 'test.txt'
 
     const uploadFolder = await SF.items(uploadFolderID);
-    const res = await uploadFolder.upload("Test!!!",'test.txt');
+    const uploadedFile = await uploadFolder.upload("Test!!!",uploadFilename);
 
-    console.log("RES",res)
+    expect(uploadedFile?.FileName).to.be.eq(uploadFilename)
 
   })
 
-  // it('Renames File', async()=>{
-  //   const SF = new ShareFileAPI(credentials.good);
+  it('Updates File Description', async()=>{
+    const SF = new ShareFileAPI(credentials.good);
 
-  //   const fileName = "test.txt";
-  //   const newName = "renamed.txt";
+    const fileName = "test.txt";
 
-  //   const testFilePath = "Personal Folders/TestUpload/"+fileName
-  //   const file = await SF.itemsByPath(testFilePath);
-  //   await file.rename(newName)
-  //   expect(file.Name).to.equal(newName)
-  //   await file.rename(fileName)
-  //   expect(file.Name).to.equal(fileName)
+    const testFilePath = "Personal Folders/TestUpload/"+fileName
+    const file = await SF.itemsByPath(testFilePath);
+    const res = await file.updateItem({Description:'Hello234234234'})
+    expect(res.Description==='Hello234234234').to.eq(true)
 
-  // })
+  })
 
-  // it('Moves File', async()=>{
-  //   const SF = new ShareFileAPI(credentials.good);
+  it('Moves File', async()=>{
+    const SF = new ShareFileAPI(credentials.good);
 
-  //   const fromFolderPath = "Personal Folders/TestUpload/";
-  //   const fromFolderID = await SF.itemsByPath(fromFolderPath).then(file=>file.id);
+    const fromFolderPath = "Personal Folders/API Test/";
+    const toFolderPath = "Personal Folders/API Test/Archive";
 
-  //   const toFolderPath = "Personal Folders/TestScans/";
-  //   const toFolderID = await SF.itemsByPath(toFolderPath).then(file=>file.id);
+    const fromFolderID = await SF.itemsByPath(fromFolderPath)
+    const uploadedFile = await fromFolderID.upload("Test!!!",'move_test.txt');
+    expect(uploadedFile?.Parent.Id===fromFolderID.id)
 
-  //   const fileName = "test.txt";
-
-  //   const testFilePath = "Personal Folders/TestUpload/"+fileName
-  //   const file = await SF.itemsByPath(testFilePath);
-  //   await file.move(toFolderID);
-  //   expect(file.Parent.Id).to.equal(toFolderID);
-  //   await file.move(fromFolderID);
-  //   expect(file.Parent.Id).to.equal(fromFolderID);
-
-  // })
+    const movedFile  = await uploadedFile?.move(toFolderPath)
+    const toFolderID = await SF.itemsByPath(toFolderPath).then(file=>file.id);
+    expect(movedFile?.Parent.Id===toFolderID)
+  })
 });

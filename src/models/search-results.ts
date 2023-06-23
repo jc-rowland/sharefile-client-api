@@ -1,5 +1,3 @@
-import SharefileHTTP from '../http'
-
 /**
  *
  *

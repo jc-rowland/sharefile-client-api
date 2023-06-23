@@ -54,6 +54,9 @@ export default class SharefileHTTP {
   get post(){
     return (path:string,body:object,params?:object)=>this._req(path,'POST',body,params)
   }
+  get patch(){
+    return (path:string,body:object,params?:object)=>this._req(path,'PATCH',body,params)
+  }
 
   async getToken() {
     if (!this.access_token || this.isTokenExpired) {
