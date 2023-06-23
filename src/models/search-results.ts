@@ -9,4 +9,4 @@ class SharefileSearchResults {
   }
 }
 
-module.exports = SharefileSearchResults;
+export default  SharefileSearchResults;
