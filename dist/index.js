@@ -567,3 +567,4 @@ var src_default = sharefile_node_api_default;
 0 && (module.exports = {
   ShareFileAPI
 });
+//# sourceMappingURL=index.js.map

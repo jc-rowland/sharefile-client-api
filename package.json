@@ -1,6 +1,6 @@
 {
   "name": "@jc-rowland/sharefile-node-api",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Unofficial Node based API for Sharefile",
   "author": "Justin Rowland <jcrowland7@gmail.com> (https://github.com/jc-rowland)",
   "license": "GPL-3.0",
@@ -8,17 +8,23 @@
     "type": "git",
     "url": "git+https://github.com/jc-rowland/sharefile-node-api.git"
   },
-  "main": "src/index.js",
-  "module": "src/index.js",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
   "files": [
-    "src"
+    "src","dist"
   ],
+  "tsup": {
+    "entry": ["src/index.ts"],
+    "splitting": false,
+    "sourcemap": true,
+    "clean": true
+  },
   "scripts": {
     "test": "mocha -r ts-node/register test/**/*.spec.ts --timeout 10000",
     "lint": "eslint --ext .js src test/unit",
     "watch": "ts-jest --watch --config test/jest.config.ts --env=node",
     "prod": "npm run lint && npm run test",
-    "build":"tsup src/index.ts",
+    "build":"tsup src/index.ts --dts",
     "npm:patch": "npm run prod && npm version patch && npm publish",
     "npm:minor": "npm run prod && npm version minor && npm publish"
   },
