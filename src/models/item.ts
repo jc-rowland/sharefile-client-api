@@ -284,7 +284,7 @@ class SharefileItem {
         if (redirect) {
           return res;
         } else {
-          return new DownloadSpecification(res.data);
+          return new DownloadSpecification(res);
         }
       });
   }

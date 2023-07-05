@@ -354,7 +354,7 @@ var SharefileItem = class _SharefileItem {
       if (redirect) {
         return res;
       } else {
-        return new download_spec_default(res.data);
+        return new download_spec_default(res);
       }
     });
   }
