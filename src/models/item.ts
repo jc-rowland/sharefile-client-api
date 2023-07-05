@@ -24,6 +24,8 @@ class SharefileItem {
    */
   Name: string;
 
+  Hash: string;
+
   /**
    * Item File Name. ShareFile allows Items to have different Display and File names:
    * display names are shown during client navigation, while file names are used when the item is downloaded.
@@ -224,6 +226,7 @@ class SharefileItem {
       this.#api                       = api
       this.id                         = body.Id
       this.Name                       = body.Name
+      this.Hash                       = body.Hash
       this.FileName                   = body.FileName
       this.Creator                    = body.Creator
       this.Parent                     = body.Parent
