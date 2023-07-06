@@ -4,6 +4,7 @@ declare namespace ShareFileAPIModels {
     interface Item {
         /** Item identifier */
         Id: string;
+        Hash: string;
         /** Item Name */
         Name: string;
         /** Item File Name. ShareFile allows Items to have different Display and File names: display names are shown during client navigation, while file names are used when the item is downloaded. */
@@ -328,6 +329,7 @@ declare class SharefileItem {
      * @type {string}
      */
     Name: string;
+    Hash: string;
     /**
      * Item File Name. ShareFile allows Items to have different Display and File names:
      * display names are shown during client navigation, while file names are used when the item is downloaded.
