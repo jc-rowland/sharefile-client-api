@@ -3,7 +3,7 @@
  * 
  */
 
-import SharefileHTTP from "../http";
+import SharefileHTTP from "../http/index";
 import ShareFileAPI from "../sharefile-client-api";
 
 export default class SharefileClientAPIElement {

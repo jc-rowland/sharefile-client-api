@@ -5,10 +5,8 @@
  */
 //@ts-expect-error - no declaration
 import detectContentType from "detect-content-type";
-import https from "https";
-import url from "url";
 import SharefileClientAPIElement from "./api-element";
-import SharefileHTTP from "../http";
+import SharefileHTTP from "../http/index";
 import ShareFileAPI from "../sharefile-client-api";
 
 interface HTTPResponse_UploadSpecification {
@@ -35,10 +33,11 @@ class UploadSpecification extends SharefileClientAPIElement {
   readonly CanAcceptParamsInHeaders: boolean;
 
   constructor(
-    values :HTTPResponse_UploadSpecification,
-    http:SharefileHTTP,api:ShareFileAPI
+    values: HTTPResponse_UploadSpecification,
+    http: SharefileHTTP,
+    api: ShareFileAPI
   ) {
-    super(http,api)
+    super(http, api)
     this.Method                   = values.Method;
     this.ChunkUri                 = values.ChunkUri;
     this.ProgressData             = values.ProgressData;
@@ -50,50 +49,39 @@ class UploadSpecification extends SharefileClientAPIElement {
     this.CanAcceptParamsInHeaders = values.CanAcceptParamsInHeaders;
   }
 
-  get sendOptions() {
-    const chunkURL = new url.URL(this.ChunkUri);
-
-    return {
-      path: chunkURL.href,
-      hostname: chunkURL.hostname,
-      method: "POST",
-      port: "443",
-    };
-  }
-
   /**
-   *
-   *
-   * @param {String|Buffer} contents
-   * @return {*}
+   * Uploads the contents to the specified ChunkUri.
+   * @param {String|Buffer} contents - The content to upload.
+   * @return {Promise<string>} A promise that resolves with the upload response.
    * @memberof UploadSpecification
    */
-  async upload(contents:string|Buffer) {
+  async upload(contents: string | Buffer): Promise<string> {
     if (!Buffer.isBuffer(contents)) {
       contents = Buffer.from(contents);
     }
 
-    return new Promise((resolve, reject) => {
-      const ops = {
-        ...this.sendOptions,
-        headers: {
-          "Content-Type": detectContentType(Buffer.from(contents)),
-          "Content-Length": contents.length,
-        },
-      };
+    const headers = {
+      "Content-Type": detectContentType(contents),
+      "Content-Length": contents.length.toString(),
+    };
 
-      const sfRequest = https.request(ops, function (response:any) {
-        response.setEncoding("utf8");
-        response.on("data" , resolve);
-        response.on("error", reject);
+    try {
+      const response = await fetch(this.ChunkUri, {
+        method: "POST",
+        headers: headers,
+        body: contents,
       });
-      sfRequest.on("error", reject);
-      sfRequest.write(contents);
-      sfRequest.end();
-    });
-  }
 
-  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.text();
+    } catch (error) {
+      console.error("Upload failed:", error);
+      throw error;
+    }
+  }
 }
 
-export default  UploadSpecification;
+export default UploadSpecification;

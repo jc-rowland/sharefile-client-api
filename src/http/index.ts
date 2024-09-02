@@ -1,4 +1,3 @@
-import axios, { AxiosError, AxiosResponse, Method } from "axios";
 import { ShareFileResponse } from "../types/sharefileresponse";
 
 export interface SharefileApiAuth {
@@ -24,27 +23,51 @@ export default class SharefileHTTP {
     return `https://${this.auth.subdomain}.sf-api.com/sf/v3/`;
   }
 
+  private async safeJsonParse(response: Response): Promise<any> {
+    const text = await response.text();
+    if (!text) {
+      return null;
+    }
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      console.warn('Failed to parse response as JSON:', text);
+      return text;
+    }
+  }
+
   private async request<T>(
     path: string,
-    method: Method,
+    method: string,
     body?: Record<string, any>,
     query?: Record<string, any>
   ): Promise<T> {
+    const url = new URL(this.apiPath + path);
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => 
+        url.searchParams.append(key, value.toString())
+      );
+    }
+
     try {
-      const { data } = await axios.request<T>({
-        url: this.apiPath + path,
+      const response = await fetch(url.toString(), {
         method,
-        data: body,
-        params: query,
         headers: {
-          authorization: `Bearer ${await this.getToken()}`,
+          'Authorization': `Bearer ${await this.getToken()}`,
+          'Content-Type': 'application/json'
         },
+        body: body ? JSON.stringify(body) : undefined
       });
-      return data;
+
+      if (!response.ok) {
+        const errorBody = await this.safeJsonParse(response);
+        throw new Error(`API request failed: ${response.statusText}${errorBody ? ` - ${JSON.stringify(errorBody)}` : ''}`);
+      }
+
+      return await this.safeJsonParse(response) as T;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        throw new Error(`API request failed: ${axiosError.message}`);
+      if (error instanceof Error) {
+        throw new Error(`API request failed: ${error.message}`);
       }
       throw error;
     }
@@ -85,23 +108,38 @@ export default class SharefileHTTP {
     });
 
     try {
-      const { data } = await axios.post<ShareFileResponse.Login>(
+      const response = await fetch(
         `https://${this.auth.subdomain}.sharefile.com/oauth/token`,
-        config.toString(),
         {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
+          body: config.toString(),
         }
       );
+
+      if (!response.ok) {
+        const errorBody = await this.safeJsonParse(response);
+        if(errorBody.error_description){
+          throw new Error(`${errorBody.error_description}`);
+        } else{
+          throw new Error(`Authentication failed: ${response.statusText}${errorBody ? ` - ${JSON.stringify(errorBody)}` : ''}`);
+        }
+      }
+
+      const data = await this.safeJsonParse(response) as ShareFileResponse.Login;
+
+      if (!data || !data.access_token) {
+        throw new Error('Authentication failed: Invalid response data');
+      }
 
       this.access_token = data.access_token;
       this.access_token_expires = new Date(Date.now() + data.expires_in * 1000);
       return this.access_token;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        throw new Error(`Authentication failed: ${axiosError.message}`);
+      if (error instanceof Error) {
+        throw new Error(`Authentication failed: ${error.message}`);
       }
       throw error;
     }

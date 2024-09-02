@@ -1,5 +1,31 @@
+"use strict";
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 var __decorateClass = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
   for (var i = decorators.length - 1, decorator; i >= 0; i--)
@@ -9,8 +35,16 @@ var __decorateClass = (decorators, target, key, kind) => {
   return result;
 };
 
+// src/index.ts
+var src_exports = {};
+__export(src_exports, {
+  ShareFileAPI: () => ShareFileAPI,
+  default: () => src_default
+});
+module.exports = __toCommonJS(src_exports);
+
 // src/models/upload-spec.ts
-import detectContentType from "detect-content-type";
+var import_detect_content_type = __toESM(require("detect-content-type"), 1);
 
 // src/models/api-element.ts
 var SharefileClientAPIElement = class {
@@ -59,7 +93,7 @@ var UploadSpecification = class extends SharefileClientAPIElement {
       contents = Buffer.from(contents);
     }
     const headers = {
-      "Content-Type": detectContentType(contents),
+      "Content-Type": (0, import_detect_content_type.default)(contents),
       "Content-Length": contents.length.toString()
     };
     try {
@@ -878,8 +912,4 @@ function Deprecated(message) {
 
 // src/index.ts
 var src_default = ShareFileAPI;
-export {
-  ShareFileAPI,
-  src_default as default
-};
-//# sourceMappingURL=index.js.map
+//# sourceMappingURL=index.cjs.map

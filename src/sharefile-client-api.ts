@@ -1,5 +1,5 @@
 import SharefileItem from './models/item';
-import SharefileHTTP, { SharefileApiAuth } from './http';
+import SharefileHTTP, { SharefileApiAuth } from './http/index';
 import { ShareFileAPIModels } from './types/sharefile.api.models';
 import SharefileSearchResults, { ISearchResult_Reponse } from './models/search-results';
 import SharefileClientAPIElement from './models/api-element';

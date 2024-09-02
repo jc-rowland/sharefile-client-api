@@ -4,7 +4,7 @@
  */
 
 import SharefileItem from './item';
-import SharefileHTTP from '../http';
+import SharefileHTTP from '../http/index';
 import ShareFileAPI from '../sharefile-client-api';
 import SharefileClientAPIElement from './api-element';
 

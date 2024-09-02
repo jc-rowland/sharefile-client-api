@@ -1,15 +1,7 @@
-/**
- * @memberof ShareFile.Api.Models.DownloadSpecification
- * @link https://api.sharefile.com/docs/resource?name=ShareFile.Api.Models.DownloadSpecification
- */
 import { ShareFileResponse } from '../types/sharefileresponse'
 import SharefileClientAPIElement from "./api-element";
-import SharefileHTTP from "../http";
+import SharefileHTTP from "../http/index";
 import ShareFileAPI from "../sharefile-client-api";
-import https from 'https'
-import { Readable,Writable } from 'stream';
-import { IncomingMessage } from 'http';
-
 
 export interface HttpResponse_DownloadSpecification {
     DownloadToken: string
@@ -19,10 +11,8 @@ export interface HttpResponse_DownloadSpecification {
     "odata.type": string
 }
 
-
 /**
- * 
- * ````
+ *  ````
  *  const downloadSpec = new DownloadSpecification(response, http, api);
  *
  *  // Download as Buffer (default)
@@ -38,6 +28,8 @@ export interface HttpResponse_DownloadSpecification {
  *  const stream = await downloadSpec.waitAndDownload().then(chain => chain.toStream());
  * ````
  * 
+ * @memberof ShareFile.Api.Models.DownloadSpecification
+ * @link https://api.sharefile.com/docs/resource?name=ShareFile.Api.Models.DownloadSpecification
  */
 export default class DownloadSpecification extends SharefileClientAPIElement {
     readonly token: string = "";
@@ -59,34 +51,20 @@ export default class DownloadSpecification extends SharefileClientAPIElement {
         };
     }
 
-    /**
-     * Checks the preparation status of the download.
-     * @returns {Promise<boolean>} True if the download is ready, false otherwise.
-     */
     async checkStatus(): Promise<boolean> {
-        if(!this.prepStatus){return true}
+        if (!this.prepStatus) return true;
         try {
-            return  await this._http.get(this.prepStatus);
+            return await this._http.get(this.prepStatus);
         } catch (error) {
             console.error('Error checking download status:', error);
             return false;
         }
     }
 
-    /**
-     * Initiates the file download.
-     * @returns {DownloadChain} A chainable object with toBuffer and toStream methods.
-     */
     download(): DownloadChain {
         return new DownloadChain(this.url, this.token);
     }
 
-    /**
-     * Waits for the download to be ready and then initiates the download.
-     * @param {number} [maxAttempts=10] - Maximum number of status check attempts.
-     * @param {number} [interval=1000] - Interval between status checks in milliseconds.
-     * @returns {Promise<DownloadChain>} A chainable object with toBuffer and toStream methods.
-     */
     async waitAndDownload(maxAttempts: number = 10, interval: number = 2000): Promise<DownloadChain> {
         for (let i = 0; i < maxAttempts; i++) {
             if (await this.checkStatus()) {
@@ -107,34 +85,25 @@ class DownloadChain {
         this.token = token;
     }
 
-    private makeRequest(): Promise<IncomingMessage> {
-        return new Promise((resolve, reject) => {
-            const options = {
-                headers: { 'Authorization': `Bearer ${this.token}` }
-            };
-
-            https.get(this.url, options, (response) => {
-                if (response.statusCode === 200) {
-                    resolve(response);
-                } else {
-                    reject(new Error(`HTTP Error: ${response.statusCode}`));
-                }
-            }).on('error', reject);
+    private async makeRequest(): Promise<Response> {
+        const response = await fetch(this.url, {
+            headers: { 'Authorization': `Bearer ${this.token}` }
         });
+
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status}`);
+        }
+
+        return response;
     }
 
     async toBuffer(): Promise<Buffer> {
         const response = await this.makeRequest();
-        return new Promise((resolve, reject) => {
-            const chunks: Buffer[] = [];
-            response.on('data', (chunk: Buffer) => chunks.push(chunk));
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        });
+        return await response.arrayBuffer().then(res=>Buffer.from(res));
     }
 
-    async toStream(): Promise<Readable> {
+    async toStream(): Promise<ReadableStream> {
         const response = await this.makeRequest();
-        return response;
+        return response.body!;
     }
 }

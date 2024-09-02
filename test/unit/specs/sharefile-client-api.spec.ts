@@ -25,14 +25,14 @@ describe("ShareFileAPI", () => {
     const SF = new ShareFileAPI(credentials.badUsername);
     const response = await SF.connect().catch((err) => err);
     expect(response).to.be.an.instanceof(Error);
-    expect(response.message).to.be.equal("Authentication failed: Request failed with status code 400");
+    expect(response.message).to.be.equal("Authentication failed: invalid username or password");
   });
 
   it("Fails authentication - bad client id/secret", async () => {
     const SF = new ShareFileAPI(credentials.badClientId);
     const err = await SF.connect().catch((err) => err);
     expect(err.message).to.equal(
-      "Authentication failed: Request failed with status code 400"
+      "Authentication failed: client_id or client_secret is invalid"
     );
   });
 
@@ -152,7 +152,7 @@ describe("ShareFileAPI", () => {
 
     // Test stream method
     const stream = await downloadSpec.download().toStream();
-    expect(stream).to.be.instanceOf(Readable);
+    expect(stream).to.be.instanceOf(ReadableStream);
     
   });
 

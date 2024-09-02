@@ -3,7 +3,7 @@
  * @link https://api.sharefile.com/docs/resource?name=ShareFile.Api.Models.Item
  */
 import { ShareFileAPIModels } from '../types/sharefile.api.models'
-import SharefileHTTP from '../http'
+import SharefileHTTP from '../http/index'
 import UploadSpecification from './upload-spec'
 import DownloadSpecification from './download-spec'
 import { SharefileNodeAPI } from '../types/sharefile-client-api'
