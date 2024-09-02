@@ -1,7 +1,7 @@
 {
   "name": "@jc-rowland/sharefile-client-api",
   "version": "0.5.0",
-  "description": "Unofficial API for Sharefile",
+  "description": "Unofficial TypeScript/JavaScript client for the ShareFile API - upload, download, and manage files and folders",
   "author": "Justin Rowland <jcrowland7@gmail.com> (https://github.com/jc-rowland)",
   "license": "GPL-3.0",
   "repository": {
@@ -10,6 +10,7 @@
   },
   "main": "dist/index.js",
   "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "src",
     "dist"
@@ -24,21 +25,31 @@
   },
   "scripts": {
     "test": "mocha -r tsx test/**/*.spec.ts --timeout 10000",
-    "lint": "eslint --ext .js src test/unit",
+    "lint": "eslint --ext .js,.ts src test/unit",
     "watch": "ts-jest --watch --config test/jest.config.ts --env=node",
     "prod": "npm run lint && npm run test",
     "build": "tsup src/index.ts --dts",
+    "prepublishOnly": "npm run build",
+    "publish":"npm publish --access public",
     "npm:patch": "npm run prod && npm version patch && npm publish",
     "npm:minor": "npm run prod && npm version minor && npm publish"
   },
   "keywords": [
-    "npm",
-    "package",
     "sharefile",
-    "node",
     "api",
+    "client",
+    "typescript",
     "javascript",
-    "typescript"
+    "node",
+    "file-management",
+    "cloud-storage",
+    "upload",
+    "download",
+    "folder",
+    "document",
+    "collaboration",
+    "security",
+    "citrix"
   ],
   "devDependencies": {
     "@babel/core": "^7.12.10",
@@ -78,8 +89,7 @@
     "url": "https://github.com/jc-rowland/sharefile-client-api/issues"
   },
   "homepage": "https://github.com/jc-rowland/sharefile-client-api#readme",
-  "directories": {
-    "dist": "dist",
-    "test": "test"
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
