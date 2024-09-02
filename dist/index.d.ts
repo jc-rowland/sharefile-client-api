@@ -1,6 +1,7 @@
-import { Method } from 'axios';
+import { Readable } from 'stream';
 
 declare namespace ShareFileAPIModels {
+    type SpecialItemIDs = 'home' | 'favorites' | 'allshared' | 'connectors' | 'box' | 'top';
     interface Item {
         /** Item identifier */
         Id: string;
@@ -247,28 +248,350 @@ declare namespace ShareFileAPIModels {
         /** Whether the metadata entry is public or private. Used only by the zone or storage center metadata where only zone admins have access to private metadata. */
         IsPublic: boolean;
     }
+    interface Folder extends Item {
+        FileCount: number;
+        Children: Item[];
+        HasRemoteChildren: boolean;
+        Info: ItemInfo;
+        Redirection: Redirection;
+        FavoriteFolder: FavoriteFolder;
+    }
+    interface File extends Item {
+        MimeType: string;
+        VirusStatus: VirusStatus;
+        MD5: string;
+    }
+    interface Link extends Item {
+        Uri: string;
+    }
+    interface Note extends Item {
+        Content: string;
+    }
+    interface SymbolicLink extends Item {
+        Link: string;
+        ConnectorGroup: ConnectorGroup;
+    }
+    interface ItemInfo {
+        HasVroot: boolean;
+        IsSystemRoot: boolean;
+        IsAccountRoot: boolean;
+        IsVRoot: boolean;
+        IsMyFolders: boolean;
+        IsAHomeFolder: boolean;
+        IsMyHomeFolder: boolean;
+        IsAStartFolder: boolean;
+        IsSharedFolder: boolean;
+        IsPassthrough: boolean;
+        CanAddFolder: boolean;
+        CanAddNode: boolean;
+        CanView: boolean;
+        CanDownload: boolean;
+        CanUpload: boolean;
+        CanSend: boolean;
+        CanDeleteCurrentItem: boolean;
+        CanDeleteChildItems: boolean;
+        CanManagePermissions: boolean;
+        ShowFolderPayBuyButton: boolean;
+    }
+    interface Redirection {
+        Uri: string;
+        IsProxy: boolean;
+    }
+    interface FavoriteFolder {
+        Id: string;
+        Name: string;
+        ParentId: string;
+    }
+    interface ConnectorGroup {
+        Id: string;
+        Name: string;
+    }
+    enum VirusStatus {
+        None = 0,
+        Clean = 1,
+        Infected = 2,
+        Suspicious = 3,
+        Failed = 4
+    }
+    interface PreviewStatus {
+        IsAvailable: boolean;
+        Content: string;
+    }
+    interface PreviewPlatformInfo {
+        PlatformName: string;
+        IsSupported: boolean;
+    }
+    interface EditingPlatformInfo {
+        PlatformName: string;
+        IsSupported: boolean;
+    }
+    interface ItemOperations {
+        CanView: boolean;
+        CanDownload: boolean;
+        CanUpload: boolean;
+        CanDelete: boolean;
+        CanRename: boolean;
+        CanCreateFolder: boolean;
+        CanManagePermissions: boolean;
+    }
+    interface FolderAnalyticsData {
+        TotalFiles: number;
+        TotalFolders: number;
+        TotalSize: number;
+        LastModifiedDate: Date;
+    }
+    interface FolderActivityDetails {
+        LastUploadDate: Date;
+        LastDownloadDate: Date;
+        TotalUploads: number;
+        TotalDownloads: number;
+    }
+    enum ZoneType {
+        Public = 0,
+        Private = 1
+    }
+    interface StorageCenter {
+        Id: string;
+        Name: string;
+        ExternalAddress: string;
+        Version: string;
+    }
+    interface ShareAccessRight {
+        AccessRightType: AccessRightType;
+    }
+    enum AccessRightType {
+        FullControl = 0,
+        ViewOnly = 1
+    }
+    interface UploadSpecification {
+        ChunkUri: string;
+        FinishUri: string;
+        IsResume: boolean;
+        ResumeIndex: number;
+        ResumeOffset: number;
+        ResumeFileHash: string;
+    }
+    interface DownloadSpecification {
+        DownloadUrl: string;
+    }
+    interface SearchQuery {
+        SearchString: string;
+        ItemTypes: string[];
+        ParentID: string[];
+        CreatorID: string[];
+        CreateStartDate: Date;
+        CreateEndDate: Date;
+        ItemNameOnly: boolean;
+    }
+    interface SearchResults {
+        TotalCount: number;
+        Items: Item[];
+    }
 }
 
-interface Sharefile_Api_Auth {
-    subdomain: String;
-    username: String;
-    password: String;
-    clientId: String;
-    clientSecret: String;
+interface SharefileApiAuth {
+    subdomain: string;
+    username: string;
+    password: string;
+    clientId: string;
+    clientSecret: string;
 }
 declare class SharefileHTTP {
-    auth: Sharefile_Api_Auth;
-    access_token: string;
-    access_token_expires: Date;
-    constructor(auth: Sharefile_Api_Auth);
-    get apiPath(): string;
-    _req(path: string, method: Method, body?: {}, query?: {}): Promise<any>;
-    get get(): (path: string, params: object) => Promise<any>;
-    get post(): (path: string, body: object, params?: object) => Promise<any>;
-    get patch(): (path: string, body: object, params?: object) => Promise<any>;
-    getToken(): Promise<string>;
+    private auth;
+    private access_token;
+    private access_token_expires;
+    constructor(auth: SharefileApiAuth);
+    private get apiPath();
+    private request;
+    get: <T>(path: string, params?: Record<string, any>) => Promise<T>;
+    post: <T>(path: string, body?: Record<string, any>, params?: Record<string, any>) => Promise<T>;
+    put: <T>(path: string, body?: Record<string, any>, params?: Record<string, any>) => Promise<T>;
+    patch: <T>(path: string, body?: Record<string, any>, params?: Record<string, any>) => Promise<T>;
+    delete: <T>(path: string, params?: Record<string, any>) => Promise<T>;
+    head: <T>(path: string, params?: Record<string, any>) => Promise<T>;
+    private getToken;
     authenticate(): Promise<string>;
-    get isTokenExpired(): boolean;
+    private get isTokenExpired();
+}
+
+declare namespace ShareFileResponse {
+
+  export interface OData {
+    metadata: string;
+    type: string;
+  }
+
+  export interface Login {
+      access_token: string;  // Returns an access code or access token, depending on which was requested.
+      state       : string;  // The optional value that was passed to the authorization page.
+      subdomain   : string;  // The user’s ShareFile subdomain, i.e. if they access their ShareFile account through https://mycompany.sharefile.com , this value would return “mycompany”. Some username / password combinations may be active on multiple accounts. The user would need to choose an account in this case.
+      apicp       : string;  // The user's ShareFile API control plane, i.e. sharefile.com, securevdr.com, etc.
+      appcp       : string;  // The user's ShareFile account control plane, i.e. sharefile.com, securevdr.com, etc.
+      expires_in  : number;  // The expiration time in seconds.
+      h           : string;  // A SHA-256 HMAC digest of the path and query string signed with your client secret for validation that the values came from ShareFile.
+  }
+
+  export interface Item {
+    /** Item Unique ID */
+    Id                        : string;          
+    /**Item Name*/
+    Name                      : string;          
+    /**Item File Name. ShareFile allows Items to have different Display and File names: display names are shown during client navigation, while file names are used when the item is downloaded.*/
+    FileName                  : string;          
+    /**User that Created this Item*/
+    Creator                   : User;            
+    /**Parent container of the Item. A container is usually a Folder object, with a few exceptions - the "Account" is the container of top-level folders.*/
+    Parent                    : Item;            
+    /** List of Access Controls for this Item. This is not the effective ACL on the Item, just the ACLs directly attached to this Item. Use the "Info" reference to retrieve effective ACL*/
+    AccessControls            : Array;           
+    /**The Storage Zone that contains this Item.*/
+    Zone                      : Zone;            
+    /**Item Creation Date.*/
+    CreationDate              : Date;            
+    /**The last modified date of this item and all of its children, recursively. This parameter is not supported in all ShareFile providers - it is always set in sharefile.com hosting, but not in some StorageZone connectors. The Capability object of the provider indicates whether the provider supports this field or not.*/
+    ProgenyEditDate           : Date;            
+    /**Client device filesystem Created Date of this Item.*/
+    ClientCreatedDate?        : Date;            
+    /**Client device filesystem last Modified Date of this Item.*/
+    ClientModifiedDate?       : Date;            
+    /**Defines the Retention Policy for this Item. After this date, the item is automatically moved to recycle bin.*/
+    ExpirationDate            : Date;            
+    /**Item description*/
+    Description               : string;          
+    /**Disk space limit for the Item. Define the maximum amount of bytes that this container can hold at any given time.*/
+    DiskSpaceLimit            : number;          
+    /**Defines whether the Item has a 'hidden' flag.*/
+    IsHidden                  : boolean;         
+    /**Bandwidth limit for the Item. Define the maximum amount of bytes that can be added and retrieved from this item.*/
+    BandwidthLimitInMB        : number;          
+    /**User Owner of this Item.*/
+    Owner                     : User;            
+    /**ShareFile Account containing this item.*/
+    Account                   : Account;         
+    /**Item size in Kilobytes. For containers, this field includes all children sizes, recursively.*/
+    FileSizeInKB              : number;          
+    /**Contains a ItemID path, separated by /, from the virtual root to this given file. Example /accountID/folderID/folderID/itemID*/
+    Path                      : string;          
+    /**First name of the user that created this item*/
+    CreatorFirstName          : string;          
+    /**Last name of the user that created this item*/
+    CreatorLastName           : string;          
+    /**Amount of days until this item expireses (see ExpirationDate)*/
+    ExpirationDays            : number;          
+    /**Item size in bytes. For containers, this field will include all children sizes, recursively.*/
+    FileSizeBytes             : number;          
+    /**Indicates whether a preview image is available for this Item. ShareFile.com always create previews for known file types, although there is a delay from the file creation until the preview is available. Some Storage Zones Providers do not create previews, depending on version and deployment options. Previews are not created for unknown file types*/
+    PreviewStatus             : PreviewStatus;   
+    /** Indicates a list of PreviewPlatforms supported for this item.*/
+    PreviewPlatformsSupported : Array;           
+    /** Indicates a list of EditingPlatforms supported for this item.*/
+    EditingPlatformsSupported : Array;           
+    /**Indicates that the Item is pending for removal. At the next execution of the Cleanup process, the data blob associated with this item will be removed. This parameter is not used for certain Storage Zone Providers. For example, in CIFS and SharePoint connectors, removals are performed imediately. The Capability "HasRecycleBin" indicates whether this field is used or not in the provider.*/
+    HasPendingDeletion        : boolean;         
+    /**Folder Template reference. If set, it indicates that this Item was created from a Folder Template. Modifications to the folder template are propagated to the associated items. The Capability FolderTemplate indicates whether the provider supports Folder Templates.*/
+    AssociatedFolderTemplateID: string;          
+    /**Indicates whether the item is owned by a Folder Template. If set, it indicates that this Item was created from a Folder Template. Modifications to the folder template are propagated to the associated items. The Capability FolderTemplate indicates whether the provider supports Folder Templates.*/
+    IsTemplateOwned           : boolean;         
+    /**Identifier for the Item stream. An Item represents a single version of a file system object. The stream identifies all versions of the same file system object. For example, when users upload or modify an existing file, a new Item is created with the same StreamID. All Item enumerations return only the latest version of a given stream. You can access the previous versions of a file using the StreamID reference.*/
+    StreamID                  : string;          
+    /**Short version of items creator's name. E.g., J. Doe.*/
+    CreatorNameShort          : string;          
+    /**Specifies whether there are other versions of this item. Not all providers support file versioning. The Capability FileVersioning indicates whether the provider supports file versions.*/
+    HasMultipleVersions       : boolean;         
+    /**Specifies whether or not an Item has a pending async operation.*/
+    HasPendingAsyncOp         : boolean;         
+    /**Bitmask of operations allowed on a given Item. More granular (and often accurate, as it takes into account capabilities, account settings, file lock status, etc.) than what's on ItemInfo object.*/
+    ItemOperations            : ItemOperations;  
+    /** List of custom metadata object associated with this item*/
+    Metadata                  : Array;           
+    /** List of external statuses associated with this Item*/
+    Statuses                  : Array;           
+    /**Favorite item object associated with the item*/
+    Favorite                  : Favorite;        
+    /**Item Path using Folder names*/
+    SemanticPath              : string;          
+  }
+
+  export interface Items {
+    'odata.metadata' : string;
+    'odata.count'    : number;
+    value            : Item[];
+    url              : string
+  }
+
+}
+
+/**
+ * Base class for most Sharefile elements
+ *
+ */
+
+declare class SharefileClientAPIElement {
+    protected _http: SharefileHTTP;
+    protected _api: ShareFileAPI;
+    'odata.metadata': string;
+    'odata.type': string;
+    'url'?: string;
+    constructor(http: SharefileHTTP, api: ShareFileAPI);
+}
+
+interface HttpResponse_DownloadSpecification {
+    DownloadToken: string;
+    DownloadUrl: string;
+    DownloadPrepStatusURL: string;
+    "odata.metadata": string;
+    "odata.type": string;
+}
+/**
+ *
+ * ````
+ *  const downloadSpec = new DownloadSpecification(response, http, api);
+ *
+ *  // Download as Buffer (default)
+ *  const buffer = await downloadSpec.download().toBuffer();
+ *
+ *  // Download as Stream
+ *  const stream = await downloadSpec.download().toStream();
+ *
+ *  // Wait and then download as Buffer
+ *  const buffer = await downloadSpec.waitAndDownload().then(chain => chain.toBuffer());
+ *
+ *  // Wait and then download as Stream
+ *  const stream = await downloadSpec.waitAndDownload().then(chain => chain.toStream());
+ * ````
+ *
+ */
+declare class DownloadSpecification extends SharefileClientAPIElement {
+    readonly token: string;
+    readonly url: string;
+    readonly prepStatus: string;
+    readonly odata: ShareFileResponse.OData;
+    constructor(x: HttpResponse_DownloadSpecification, http: SharefileHTTP, api: ShareFileAPI);
+    /**
+     * Checks the preparation status of the download.
+     * @returns {Promise<boolean>} True if the download is ready, false otherwise.
+     */
+    checkStatus(): Promise<boolean>;
+    /**
+     * Initiates the file download.
+     * @returns {DownloadChain} A chainable object with toBuffer and toStream methods.
+     */
+    download(): DownloadChain;
+    /**
+     * Waits for the download to be ready and then initiates the download.
+     * @param {number} [maxAttempts=10] - Maximum number of status check attempts.
+     * @param {number} [interval=1000] - Interval between status checks in milliseconds.
+     * @returns {Promise<DownloadChain>} A chainable object with toBuffer and toStream methods.
+     */
+    waitAndDownload(maxAttempts?: number, interval?: number): Promise<DownloadChain>;
+}
+declare class DownloadChain {
+    private url;
+    private token;
+    constructor(url: string, token: string);
+    private makeRequest;
+    toBuffer(): Promise<Buffer>;
+    toStream(): Promise<Readable>;
 }
 
 declare namespace SharefileNodeAPI {
@@ -317,199 +640,217 @@ declare namespace SharefileNodeAPI {
     }
 }
 
-declare class SharefileItem {
-    #private;
+declare class SharefileItem extends SharefileClientAPIElement {
     /**
      * Item Unique ID.
      * @type {string}
      */
-    id: string;
+    readonly id: string;
     /**
      * Item Name.
      * @type {string}
      */
-    Name: string;
-    Hash: string;
+    readonly Name: string;
+    readonly Hash: string;
     /**
      * Item File Name. ShareFile allows Items to have different Display and File names:
      * display names are shown during client navigation, while file names are used when the item is downloaded.
      * @type {string}
      */
-    FileName: string;
+    readonly FileName: string;
     /**
      * User that Created this Item.
      */
-    Creator: ShareFileAPIModels.User | undefined;
+    readonly Creator?: ShareFileAPIModels.User;
     /**
      * Parent container of the Item. A container is usually a Folder object, with a few exceptions - the "Account" is the container of top-level folders.
      */
-    Parent: {
+    readonly Parent: {
         Id: string;
     };
     /**
      * List of Access Controls for this Item. This is not the effective ACL on the Item, just the ACLs directly attached to this Item. Use the "Info" reference to retrieve effective ACL.
      */
-    AccessControls: ShareFileAPIModels.AccessControl[] | undefined;
+    readonly AccessControls?: ShareFileAPIModels.AccessControl[];
     /**
      * The Storage Zone that contains this Item.
      */
-    Zone: ShareFileAPIModels.Zone | undefined;
+    readonly Zone?: ShareFileAPIModels.Zone;
     /**
      * Item Creation Date.
      */
-    CreationDate: Date;
+    readonly CreationDate: Date;
     /**
      * The last modified date of this item and all of its children, recursively.
      * This parameter is not supported in all ShareFile providers - it is always set in sharefile.com hosting, but not in some StorageZone connectors. The Capability object of the provider indicates whether the provider supports this field or not.
      */
-    ProgenyEditDate: Date;
+    readonly ProgenyEditDate: Date;
     /**
      * Client device filesystem Created Date of this Item.
      */
-    ClientCreatedDate?: Date;
+    readonly ClientCreatedDate?: Date;
     /**
      * Client device filesystem last Modified Date of this Item.
      */
-    ClientModifiedDate?: Date;
+    readonly ClientModifiedDate?: Date;
     /**
      * Defines the Retention Policy for this Item. After this date, the item is automatically moved to recycle bin.
      */
-    ExpirationDate: Date;
+    readonly ExpirationDate: Date;
     /**
      * Item description.
      */
-    Description: string;
+    readonly Description: string;
     /**
      * Disk space limit for the Item. Define the maximum amount of bytes that this container can hold at any given time.
      */
-    DiskSpaceLimit: number;
+    readonly DiskSpaceLimit: number;
     /**
      * Defines whether the Item has a 'hidden' flag.
      */
-    IsHidden: boolean;
+    readonly IsHidden: boolean;
     /**
      * Bandwidth limit for the Item. Define the maximum amount of bytes that can be added and retrieved from this item.
      */
-    BandwidthLimitInMB: number;
+    readonly BandwidthLimitInMB: number;
     /**
      * User Owner of this Item.
      */
-    Owner?: ShareFileAPIModels.User;
+    readonly Owner?: ShareFileAPIModels.User;
     /**
      * ShareFile Account containing this item.
      */
-    Account?: ShareFileAPIModels.Account;
+    readonly Account?: ShareFileAPIModels.Account;
     /**
      * Item size in Kilobytes. For containers, this field includes all children sizes, recursively.
      */
-    FileSizeInKB: number;
+    readonly FileSizeInKB: number;
     /**
      * Contains an ItemID path, separated by /, from the virtual root to this given file. Example /accountID/folderID/folderID/itemID.
      */
-    Path: string;
+    readonly Path: string;
     /**
      * First name of the user that created this item.
      */
-    CreatorFirstName: string;
+    readonly CreatorFirstName: string;
     /**
      * Last name of the user that created this item.
      */
-    CreatorLastName: string;
+    readonly CreatorLastName: string;
     /**
      * Amount of days until this item expires (see ExpirationDate).
      */
-    ExpirationDays: number;
+    readonly ExpirationDays: number;
     /**
      * Item size in bytes. For containers, this field will include all children sizes, recursively.
      */
-    FileSizeBytes: number;
+    readonly FileSizeBytes: number;
     /**
      * Indicates whether a preview image is available for this Item. ShareFile.com always creates previews for known file types, although there is a delay from the file creation until the preview is available. Some Storage Zones Providers do not create previews, depending on version and deployment options. Previews are not created for unknown file types.
      */
-    PreviewStatus?: any;
+    readonly PreviewStatus?: any;
     /**
      * Indicates a list of PreviewPlatforms supported for this item.
      */
-    PreviewPlatformsSupported?: any;
+    readonly PreviewPlatformsSupported?: any;
     /**
      * Indicates a list of EditingPlatforms supported for this item.
      */
-    EditingPlatformsSupported: any;
+    readonly EditingPlatformsSupported: any;
     /**
      * Indicates that the Item is pending for removal. At the next execution of the Cleanup process, the data blob associated with this item will be removed. This parameter is not used for certain Storage Zone Providers. For example, in CIFS and SharePoint connectors, removals are performed immediately. The Capability "HasRecycleBin" indicates whether this field is used or not in the provider.
      */
-    HasPendingDeletion: boolean;
+    readonly HasPendingDeletion: boolean;
     /**
      * Folder Template reference. If set, it indicates that this Item was created from a Folder Template. Modifications to the folder template are propagated to the associated items. The Capability FolderTemplate indicates whether the provider supports Folder Templates.
      */
-    AssociatedFolderTemplateID: string;
+    readonly AssociatedFolderTemplateID: string;
     /**
      * Indicates whether the item is owned by a Folder Template. If set, it indicates that this Item was created from a Folder Template. Modifications to the folder template are propagated to the associated items. The Capability FolderTemplate indicates whether the provider supports Folder Templates.
      */
-    IsTemplateOwned: boolean;
+    readonly IsTemplateOwned: boolean;
     /**
      * Identifier for the Item stream. An Item represents a single version of a file system object. The stream identifies all versions of the same file system object. For example, when users upload or modify an existing file, a new Item is created with the same StreamID. All Item enumerations return only the latest version of a given stream. You can access the previous versions of a file using the StreamID reference.
      */
-    StreamID: string;
+    readonly StreamID: string;
     /**
      * Short version of the item's creator's name. E.g., J. Doe.
      */
-    CreatorNameShort: string;
+    readonly CreatorNameShort: string;
     /**
      * Specifies whether there are other versions of this item. Not all providers support file versioning. The Capability FileVersioning indicates whether the provider supports file versions.
      */
-    HasMultipleVersions: boolean;
+    readonly HasMultipleVersions: boolean;
     /**
      * Specifies whether or not an Item has a pending async operation.
      */
-    HasPendingAsyncOp: boolean;
+    readonly HasPendingAsyncOp: boolean;
     /**
      * Bitmask of operations allowed on a given Item. More granular (and often accurate, as it takes into account capabilities, account settings, file lock status, etc.) than what's on ItemInfo object.
      */
-    ItemOperations?: any;
+    readonly ItemOperations?: any;
     /**
      * List of custom metadata objects associated with this item.
      */
-    Metadata?: any;
+    readonly Metadata?: any;
     /**
      * List of external statuses associated with this Item.
      */
-    Statuses?: any;
+    readonly Statuses?: any;
     /**
      * Favorite item object associated with the item.
      */
-    Favorite?: any;
+    readonly Favorite?: any;
     /**
      * Item Path using Folder names.
      */
-    SemanticPath?: string;
+    readonly SemanticPath?: string;
     url: string;
     /**
      * Creates an instance of SharefileItem.
      * @param {ShareFileAPIModels.Item} body - The response body from ShareFile API representing an Item.
      * @param {SharefileHTTP} http - SharefileHTTP instance used for making HTTP requests.
+     * @param {ShareFileAPI} api - ShareFileAPI instance for additional operations.
      */
     constructor(body: ShareFileAPIModels.Item, http: SharefileHTTP, api: ShareFileAPI);
     /**
-     *
-     *
-     * @param {boolean} [redirect=false] Redirect to download link if set to true (default), or return a DownloadSpecification if set to false
-     * @param {boolean} [includeAllVersions=false] For folder downloads only, includes old versions of files in the folder in the zip when true, current versions only when false (default)
-     * @param {boolean} [includeDeleted=false] For FINRA or other archive enabled account only, Super User can set includeDelete=true to download archived item. The default value of includeDeleted is false
-     * @return {DownloadSpecification|string} the download link or DownloadSpecification for the this item.
-     * @memberof SharefileItem
+     * Downloads the item and returns a download link.
+     * @param redirect - Whether to redirect to the download link.
+     * @param includeAllVersions - For folder downloads, includes old versions of files when true.
+     * @param includeDeleted - Include archived items if true (for FINRA or other archive-enabled accounts).
      */
-    download(redirect?: boolean, includeAllVersions?: boolean, includeDeleted?: boolean): Promise<any>;
+    download(redirect: true, includeAllVersions?: boolean, includeDeleted?: boolean): Promise<string>;
+    /**
+     * Downloads the item and returns a DownloadSpecification.
+     * @param redirect - Whether to redirect to the download link.
+     * @param includeAllVersions - For folder downloads, includes old versions of files when true.
+     * @param includeDeleted - Include archived items if true (for FINRA or other archive-enabled accounts).
+     */
+    download(redirect: false, includeAllVersions?: boolean, includeDeleted?: boolean): Promise<DownloadSpecification>;
+    /**
+     * Creates a new folder as a child of the current item.
+     * @param folderName The name of the new folder
+     * @param description Optional description for the new folder
+     * @param overwrite If true, overwrites an existing folder with the same name
+     * @returns A Promise that resolves to the newly created SharefileItem
+     */
+    createFolder(folderName: string, description?: string, overwrite?: boolean): Promise<SharefileItem>;
     /**
      * Updates an Item object. Please note that for a Folder, the Name and FileName properties must be consistent.
      * If a new Name is provided, the FileName will also be updated with the new name, and viceversa.
      * If both Name and FileName are provided, FileName is disregarded and Name will be used to update both properties.
      *
      * Note: the parameters listed in the body of the request are the only parameters that can be updated through this call.
-     * @param {boolean} overwrite
+     * @param {SharefileNodeAPI.Items.UpdateItemOps_Body} ops - The properties to update.
+     * @returns {Promise<SharefileItem>} The updated SharefileItem.
      */
-    updateItem(ops: SharefileNodeAPI.Items.UpdateItemOps_Body): Promise<this>;
-    rename(newValue: string): Promise<this>;
+    updateItem(ops: SharefileNodeAPI.Items.UpdateItemOps_Body): Promise<SharefileItem>;
+    /**
+    * Renames the item.
+    * @param {string} newValue - The new name for the item.
+    * @returns {Promise<SharefileItem>} The updated SharefileItem.
+    */
+    rename(newValue: string): Promise<SharefileItem>;
     /**
      * Moves an item to a new parent
      *
@@ -517,62 +858,249 @@ declare class SharefileItem {
      * - If a path, makes an extra call to determine the ID of the parent before performing the move.
      * @memberof SharefileItem
      */
-    move(parentIdorPath: string): Promise<this>;
+    move(parentIdorPath: string): Promise<SharefileItem>;
     /** DEPRECATED use getParent() */
     parent(): Promise<SharefileItem>;
+    /**
+     * Gets the parent of this item.
+     * @returns {Promise<SharefileItem>} The parent SharefileItem.
+     */
     getParent(): Promise<SharefileItem>;
     /**
-     * Handler for the Children navigation property of a given Item. A 302 redirection is returned if the folder is a SymbolicLink. The redirection will enumerate the children of the remote connector
-     *
-     * @return {SharefileItem[]} the list of children under the given object ID
-     * @memberof SharefileItem
+     * Gets the children of this item (if it's a folder).
+     * @param {boolean} [includeDeleted=false] - Whether to include deleted items.
+     * @returns {Promise<SharefileItem[]>} An array of child SharefileItems.
      */
     children(includeDeleted?: boolean): Promise<SharefileItem[]>;
-    get token(): string;
-    set token(x: string);
     /**
-     * Gets first Child based on a given property.
-     */
+    * Gets the first child that matches the given property and value.
+    * @param {keyof SharefileItem} propName - The property name to match.
+    * @param {any} propVal - The value to match.
+    * @param {boolean} [includeDeleted=false] - Whether to include deleted items in the search.
+    * @returns {Promise<SharefileItem | undefined>} The matching SharefileItem, if found.
+    */
     childBy(propName: keyof SharefileItem, propVal: any, includeDeleted?: boolean): Promise<SharefileItem | undefined>;
+    /**
+     * Uploads a file to this item (if it's a folder).
+     * @param {string | Buffer} contents - The file contents to upload.
+     * @param {string} filename - The name for the uploaded file.
+     * @returns {Promise<SharefileItem | undefined>} The newly created SharefileItem, if successful.
+     */
     upload(contents: string | Buffer, filename: string): Promise<SharefileItem | undefined>;
+    /**
+     * Retrieves the versions of a given Stream.
+     * @param includeDeleted Specifies whether or not expired items should be included in the feed
+     * @returns A Promise that resolves to the stream versions
+     */
+    getStream(includeDeleted?: boolean): Promise<ShareFileAPIModels.Item[]>;
+    /**
+     * Removes the item
+     * @param singleversion True will delete only the specified version rather than all sibling files with the same filename
+     * @param forceSync True will block the operation from taking place asynchronously
+     * @returns A Promise that resolves when the item is deleted
+     */
+    delete(singleversion?: boolean, forceSync?: boolean): Promise<true>;
+    /**
+     * Unlocks a locked file. This operation is only implemented in Sharepoint providers (/sp)
+     * @param message Optional message for the check-in
+     * @returns A Promise that resolves when the file is unlocked
+     */
+    unlock(message?: string): Promise<void>;
+    /**
+     * Locks a file. This operation is only implemented in Sharepoint providers (/sp)
+     * @returns A Promise that resolves when the file is locked
+     */
+    lock(): Promise<void>;
+    /**
+     * Discards the existing lock on the file. This operation is only implemented in Sharepoint providers (/sp)
+     * @returns A Promise that resolves when the lock is discarded
+     */
+    discardCheckOut(): Promise<void>;
 }
 
+/**
+ * @memberof ShareFile._api.Models.SearchResults
+ * @link https://api.sharefile.com/docs/resource?name=ShareFile._api.Models.SearchResults
+ */
+
+/**
+ * Represents a single search result item.
+ */
+interface ISearchResult_Reponse {
+    PartialResults: boolean;
+    Results: any[];
+    TimedOut: boolean;
+    TotalCount: number;
+}
+/**
+ * Represents the results of a search operation in ShareFile.
+ */
+declare class SharefileSearchResults extends SharefileClientAPIElement {
+    /**
+     * Indicates whether the results are partial due to limitations or timeouts.
+     */
+    readonly partialResults: boolean;
+    /**
+     * The collection of search result items.
+     */
+    readonly results: any[];
+    /**
+     * Indicates whether the search query timed out.
+     */
+    readonly timedOut: boolean;
+    /**
+     * The total number of results found.
+     */
+    readonly totalCount: number;
+    /**
+     * Creates a new instance of SharefileSearchResults.
+     *
+     * @param {Object} data - The raw search results data from the API.
+     * @param {SharefileHTTP} http - The HTTP client for making requests.
+     * @param {ShareFileAPI} api - The ShareFile API instance.
+     */
+    constructor(data: ISearchResult_Reponse, http: SharefileHTTP, api: ShareFileAPI);
+    /**
+     * Gets a specific page of search results.
+     *
+     * @param {number} pageNumber - The page number to retrieve.
+     * @param {number} pageSize - The number of items per page.
+     * @returns {Promise<SharefileSearchResults>} A new instance of SharefileSearchResults with the requested page of results.
+     */
+    getPage(pageNumber: number, pageSize: number): Promise<SharefileSearchResults>;
+    /**
+     * Retrieves the full SharefileItem for each search result.
+     *
+     * @returns {Promise<SharefileItem[]>} An array of full SharefileItem objects.
+     */
+    getFullItems(): Promise<SharefileItem[]>;
+}
+
+/**
+ * ShareFileAPI class provides a high-level interface for interacting with the ShareFile API.
+ * It handles authentication, item management, and other core ShareFile operations.
+ *
+ * @example
+ * const api = new ShareFileAPI({
+ *   subdomain: 'mycompany',
+ *   username: 'user@example.com',
+ *   password: 'password123',
+ *   clientId: 'your-client-id',
+ *   clientSecret: 'your-client-secret'
+ * });
+ *
+ * await api.connect();
+ * const rootFolder = await api.getItem('home');
+ */
 declare class ShareFileAPI {
-    #private;
-    constructor(auth: Sharefile_Api_Auth);
+    _http: SharefileHTTP;
+    _api: ShareFileAPI;
+    /**
+     * Creates a new instance of ShareFileAPI.
+     *
+     * @param {SharefileApiAuth} auth - Authentication details for ShareFile
+     */
+    constructor(auth: SharefileApiAuth);
+    /**
+     * Authenticates with the ShareFile API.
+     * This method should be called before making any other API requests.
+     *
+     * @returns {Promise<string>} A promise that resolves to the access token
+     * @throws {Error} If authentication fails
+     *
+     * @example
+     * await api.connect();
+     */
     connect(): Promise<string>;
     /**
-     * Takes an Item ID and returns a single Item.
+     * Retrieves a ShareFile item by its ID or path.
      *
-     * Special Id's: [home, favorites, allshared, connectors, box, top]
+     * @param {string} idOrPath - The ID or path of the item to retrieve
+     * @returns {Promise<SharefileItem>} A promise that resolves to the requested item
+     * @throws {Error} If the item retrieval fails
      *
-     * > home - Return home folder.
-     *
-     * > favorites - Return parent favorite item; ex: .../Items(favorites)/Children to get the favorite folders.
-     *
-     * > allshared - Return parent Shared Folders item; ex: .../Items(allshared)/Children to get the shared folders.
-     *
-     * > connectors - Return parent Connectors item; ex: .../Items(connectors)/Children to get indiviual connectors.
-     *
-     * > box - Return the FileBox folder.
-     *
-     * > top - Returns the Top item; ex: .../Items(top)/Children to get the home, favorites, and shared folders as well as the connectors
-     *
-     * @param {string} id
-     * @param {string} queryParams
-     * @memberof ShareFileAPI
+     * @example
+     * const homeFolder = await api.getItem('home');
+     * const specificFile = await api.getItem('fi123456789');
+     * const folderByPath = await api.getItem('/Personal Folders/Documents');
      */
-    items(id?: string, queryParams?: any): Promise<SharefileItem>;
+    getItem(idOrPath: string | ShareFileAPIModels.SpecialItemIDs): Promise<SharefileItem>;
     /**
-     * Retrieves an item from its path.
+     * Retrieves the contents of a folder.
      *
-     * The path is of format /foldername/foldername/filename
+     * @param {string} folderId - The ID of the folder
+     * @param {Record<string, any>} [queryParams] - Additional query parameters
+     * @returns {Promise<SharefileItem[]>} A promise that resolves to an array of folder contents
+     * @throws {Error} If retrieval of folder contents fails
      *
-     * This call may redirect the client to another API provider, if the path contains a symbolic link.
-     * @param {string} path -  ex: "/Shared Folders/Some Other Folder/somefile.ext"
-     * @memberof ShareFileAPI
+     * @example
+     * const folderContents = await api.getFolderContents('fo123456789');
+     * const filteredContents = await api.getFolderContents('fo123456789', { $filter: 'IsFolder eq true' });
+     */
+    getFolderContents(folderId: string, queryParams?: Record<string, any>): Promise<SharefileItem[]>;
+    /**
+     * Creates a new item in ShareFile.
+     *
+     * @param {string} parentId - The ID of the parent folder
+     * @param {string} itemType - The type of item to create (e.g., 'Folder', 'File')
+     * @param {Record<string, any>} itemData - Data for the new item
+     * @returns {Promise<SharefileItem>} A promise that resolves to the created item
+     * @throws {Error} If item creation fails
+     *
+     * @example
+     * const newFolder = await api.createItem('fo123456789', 'Folder', { Name: 'New Folder' });
+     * const newFile = await api.createItem('fo123456789', 'File', { Name: 'test.txt', ContentType: 'text/plain' });
+     */
+    createItem(parentId: string, itemType: string, itemData: Record<string, any>): Promise<SharefileItem>;
+    /**
+     * Deletes an item from ShareFile.
+     *
+     * @param {string} itemId - The ID of the item to delete
+     * @returns {Promise<void>}
+     * @throws {Error} If item deletion fails
+     *
+     * @example
+     * await api.deleteItem('fi123456789');
+     */
+    deleteItem(itemId: string): Promise<void>;
+    /**
+     * Searches for items in ShareFile.
+     *
+     * @param {string} query - The search query
+     * @param {Record<string, any>} [searchParams] - Additional search parameters
+     * @returns {Promise<SharefileSearchResults>} A promise that resolves to an array of search results
+     * @throws {Error} If the search operation fails
+     *
+     * @example
+     * const searchResults = await api.searchItems('budget');
+     * const filteredSearch = await api.searchItems('report', { $filter: 'CreationDate gt 2023-01-01' });
+     */
+    searchItems(query: string, searchParams?: Record<string, any>): Promise<SharefileSearchResults>;
+    /**
+     * Returns the underlying HTTP client for advanced usage.
+     *
+     * @returns {SharefileHTTP} The HTTP client instance
+     *
+     * @example
+     * const httpClient = api.getHttpClient();
+     * const customData = await httpClient.get('CustomEndpoint');
+     */
+    getHttpClient(): SharefileHTTP;
+    /**
+     * @deprecated Use getItem() instead.
+     * This method will be removed in a future version.
+     */
+    items(id?: string, queryParams?: Record<string, any>): Promise<SharefileItem>;
+    /**
+     * @deprecated Use getItem() instead.
+     * This method will be removed in a future version.
      */
     itemsByPath(path: string): Promise<SharefileItem>;
+    /**
+     * @deprecated Use createItem() instead.
+     * This method will be removed in a future version.
+     */
+    createFolder(parentId: string, folderName: string): Promise<SharefileItem>;
 }
 
 export { ShareFileAPI, ShareFileAPI as default };
