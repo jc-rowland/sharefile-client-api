@@ -1,97 +1,113 @@
-import axios, {
-  AxiosError,
-  AxiosRequestConfig,
-  AxiosResponse,
-  Method,
-} from "axios";
+import axios, { AxiosError, AxiosResponse, Method } from "axios";
 import { ShareFileResponse } from "../types/sharefileresponse";
 
-export interface Sharefile_Api_Auth {
-  subdomain: String;
-  username: String;
-  password: String;
-  clientId: String;
-  clientSecret: String;
+export interface SharefileApiAuth {
+  subdomain: string;
+  username: string;
+  password: string;
+  clientId: string;
+  clientSecret: string;
 }
 
 export default class SharefileHTTP {
-  auth: Sharefile_Api_Auth;
-  access_token: string;
-  access_token_expires: Date;
-  constructor(auth: Sharefile_Api_Auth) {
+  private auth: SharefileApiAuth;
+  private access_token: string;
+  private access_token_expires: Date;
+
+  constructor(auth: SharefileApiAuth) {
     this.auth = auth;
     this.access_token = "";
-    this.access_token_expires = new Date();
+    this.access_token_expires = new Date(0);
   }
 
-  get apiPath() {
+  private get apiPath(): string {
     return `https://${this.auth.subdomain}.sf-api.com/sf/v3/`;
   }
 
-  async _req(
+  private async request<T>(
     path: string,
     method: Method,
-    body  = {},
-    query = {}
-  ) {
-    return await axios
-      .request({
+    body?: Record<string, any>,
+    query?: Record<string, any>
+  ): Promise<T> {
+    try {
+      const { data } = await axios.request<T>({
         url: this.apiPath + path,
-        method: method,
+        method,
         data: body,
         params: query,
         headers: {
-          authorization: "Bearer " + (await this.getToken()),
+          authorization: `Bearer ${await this.getToken()}`,
         },
-      })
-      .then(({ data }) => data)
-      .catch((err) => err);
+      });
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        throw new Error(`API request failed: ${axiosError.message}`);
+      }
+      throw error;
+    }
   }
 
-  get get(){
-    return (path:string,params:object)=>this._req(path,'GET',undefined,params)
-  }
-  get post(){
-    return (path:string,body:object,params?:object)=>this._req(path,'POST',body,params)
-  }
-  get patch(){
-    return (path:string,body:object,params?:object)=>this._req(path,'PATCH',body,params)
-  }
+  get = <T>(path: string, params?: Record<string, any>): Promise<T> =>
+    this.request<T>(path, 'GET', undefined, params);
 
-  async getToken() {
+  post = <T>(path: string, body?: Record<string, any>, params?: Record<string, any>): Promise<T> =>
+    this.request<T>(path, 'POST', body, params);
+
+  put = <T>(path: string, body?: Record<string, any>, params?: Record<string, any>): Promise<T> =>
+    this.request<T>(path, 'PUT', body, params);
+
+  patch = <T>(path: string, body?: Record<string, any>, params?: Record<string, any>): Promise<T> =>
+    this.request<T>(path, 'PATCH', body, params);
+
+  delete = <T>(path: string, params?: Record<string, any>): Promise<T> =>
+    this.request<T>(path, 'DELETE', undefined, params);
+
+  head = <T>(path: string, params?: Record<string, any>): Promise<T> =>
+    this.request<T>(path, 'HEAD', undefined, params);
+
+  private async getToken(): Promise<string> {
     if (!this.access_token || this.isTokenExpired) {
       return this.authenticate();
-    } else {
-      return this.access_token;
     }
+    return this.access_token;
   }
 
-  authenticate() {
-    const config = `grant_type=password&username=${this.auth.username}&password=${this.auth.password}&client_id=${this.auth.clientId}&client_secret=${this.auth.clientSecret}`;
-    return axios
-      .post(
+  async authenticate(): Promise<string> {
+    const config = new URLSearchParams({
+      grant_type: 'password',
+      username: this.auth.username,
+      password: this.auth.password,
+      client_id: this.auth.clientId,
+      client_secret: this.auth.clientSecret,
+    });
+
+    try {
+      const { data } = await axios.post<ShareFileResponse.Login>(
         `https://${this.auth.subdomain}.sharefile.com/oauth/token`,
-        config,
+        config.toString(),
         {
           headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
         }
-      )
-      .then((result: AxiosResponse<ShareFileResponse.Login>) => {
-        this.access_token = result.data.access_token;
-        this.access_token_expires = new Date(
-          new Date().getTime() + result.data.expires_in
-        );
-        return result.data.access_token;
-      });
+      );
+
+      this.access_token = data.access_token;
+      this.access_token_expires = new Date(Date.now() + data.expires_in * 1000);
+      return this.access_token;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        throw new Error(`Authentication failed: ${axiosError.message}`);
+      }
+      throw error;
+    }
   }
 
-  get isTokenExpired() {
-    if (!this.access_token_expires) {
-      return true;
-    } else {
-      return new Date() >= this.access_token_expires;
-    }
+  private get isTokenExpired(): boolean {
+    return Date.now() >= this.access_token_expires.getTime();
   }
 }

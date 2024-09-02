@@ -1,9 +1,15 @@
 "use strict";
-
-const detectContentType = require("detect-content-type");
-const https             = require("https");
-const url               = require("url");
-
+/**
+ * @memberof ShareFile.Api.Models.UploadSpecification
+ * @link https://api.sharefile.com/docs/resource?name=ShareFile.Api.Models.UploadSpecification
+ */
+//@ts-expect-error - no declaration
+import detectContentType from "detect-content-type";
+import https from "https";
+import url from "url";
+import SharefileClientAPIElement from "./api-element";
+import SharefileHTTP from "../http";
+import ShareFileAPI from "../sharefile-client-api";
 
 interface HTTPResponse_UploadSpecification {
   Method                   : string
@@ -17,7 +23,7 @@ interface HTTPResponse_UploadSpecification {
   CanAcceptParamsInHeaders : boolean
 }
 
-class UploadSpecification {
+class UploadSpecification extends SharefileClientAPIElement {
   readonly Method                  : string;
   readonly ChunkUri                : string;
   readonly ProgressData            : string;
@@ -29,8 +35,10 @@ class UploadSpecification {
   readonly CanAcceptParamsInHeaders: boolean;
 
   constructor(
-    values :HTTPResponse_UploadSpecification
+    values :HTTPResponse_UploadSpecification,
+    http:SharefileHTTP,api:ShareFileAPI
   ) {
+    super(http,api)
     this.Method                   = values.Method;
     this.ChunkUri                 = values.ChunkUri;
     this.ProgressData             = values.ProgressData;
@@ -84,6 +92,8 @@ class UploadSpecification {
       sfRequest.end();
     });
   }
+
+  
 }
 
 export default  UploadSpecification;

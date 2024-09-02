@@ -26,20 +26,44 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var __decorateClass = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
+  for (var i = decorators.length - 1, decorator; i >= 0; i--)
+    if (decorator = decorators[i])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result)
+    __defProp(target, key, result);
+  return result;
+};
 
 // src/index.ts
 var src_exports = {};
 __export(src_exports, {
-  ShareFileAPI: () => sharefile_node_api_default,
+  ShareFileAPI: () => ShareFileAPI,
   default: () => src_default
 });
 module.exports = __toCommonJS(src_exports);
 
 // src/models/upload-spec.ts
-var detectContentType = require("detect-content-type");
-var https = require("https");
-var url = require("url");
-var UploadSpecification = class {
+var import_detect_content_type = __toESM(require("detect-content-type"));
+var import_https = __toESM(require("https"));
+var import_url = __toESM(require("url"));
+
+// src/models/api-element.ts
+var SharefileClientAPIElement = class {
+  _http;
+  _api;
+  "odata.metadata";
+  "odata.type";
+  "url";
+  constructor(http, api) {
+    this._http = http;
+    this._api = api;
+  }
+};
+
+// src/models/upload-spec.ts
+var UploadSpecification = class extends SharefileClientAPIElement {
   Method;
   ChunkUri;
   ProgressData;
@@ -49,7 +73,8 @@ var UploadSpecification = class {
   ResumeFileHash;
   MaxNumberOfThreads;
   CanAcceptParamsInHeaders;
-  constructor(values) {
+  constructor(values, http, api) {
+    super(http, api);
     this.Method = values.Method;
     this.ChunkUri = values.ChunkUri;
     this.ProgressData = values.ProgressData;
@@ -61,7 +86,7 @@ var UploadSpecification = class {
     this.CanAcceptParamsInHeaders = values.CanAcceptParamsInHeaders;
   }
   get sendOptions() {
-    const chunkURL = new url.URL(this.ChunkUri);
+    const chunkURL = new import_url.default.URL(this.ChunkUri);
     return {
       path: chunkURL.href,
       hostname: chunkURL.hostname,
@@ -84,11 +109,11 @@ var UploadSpecification = class {
       const ops = {
         ...this.sendOptions,
         headers: {
-          "Content-Type": detectContentType(Buffer.from(contents)),
+          "Content-Type": (0, import_detect_content_type.default)(Buffer.from(contents)),
           "Content-Length": contents.length
         }
       };
-      const sfRequest = https.request(ops, function(response) {
+      const sfRequest = import_https.default.request(ops, function(response) {
         response.setEncoding("utf8");
         response.on("data", resolve);
         response.on("error", reject);
@@ -102,7 +127,8 @@ var UploadSpecification = class {
 var upload_spec_default = UploadSpecification;
 
 // src/models/download-spec.ts
-var DownloadSpecification = class {
+var import_https2 = __toESM(require("https"));
+var DownloadSpecification = class extends SharefileClientAPIElement {
   token = "";
   url = "";
   prepStatus = "";
@@ -110,7 +136,8 @@ var DownloadSpecification = class {
     metadata: "",
     type: ""
   };
-  constructor(x) {
+  constructor(x, http, api) {
+    super(http, api);
     this.token = x.DownloadToken;
     this.url = x.DownloadUrl;
     this.prepStatus = x.DownloadPrepStatusURL;
@@ -119,8 +146,79 @@ var DownloadSpecification = class {
       type: x["odata.type"]
     };
   }
+  /**
+   * Checks the preparation status of the download.
+   * @returns {Promise<boolean>} True if the download is ready, false otherwise.
+   */
+  async checkStatus() {
+    if (!this.prepStatus) {
+      return true;
+    }
+    try {
+      return await this._http.get(this.prepStatus);
+    } catch (error) {
+      console.error("Error checking download status:", error);
+      return false;
+    }
+  }
+  /**
+   * Initiates the file download.
+   * @returns {DownloadChain} A chainable object with toBuffer and toStream methods.
+   */
+  download() {
+    return new DownloadChain(this.url, this.token);
+  }
+  /**
+   * Waits for the download to be ready and then initiates the download.
+   * @param {number} [maxAttempts=10] - Maximum number of status check attempts.
+   * @param {number} [interval=1000] - Interval between status checks in milliseconds.
+   * @returns {Promise<DownloadChain>} A chainable object with toBuffer and toStream methods.
+   */
+  async waitAndDownload(maxAttempts = 10, interval = 2e3) {
+    for (let i = 0; i < maxAttempts; i++) {
+      if (await this.checkStatus()) {
+        return this.download();
+      }
+      await new Promise((resolve) => setTimeout(resolve, interval));
+    }
+    throw new Error("Download preparation timed out");
+  }
 };
-var download_spec_default = DownloadSpecification;
+var DownloadChain = class {
+  url;
+  token;
+  constructor(url2, token) {
+    this.url = url2;
+    this.token = token;
+  }
+  makeRequest() {
+    return new Promise((resolve, reject) => {
+      const options = {
+        headers: { "Authorization": `Bearer ${this.token}` }
+      };
+      import_https2.default.get(this.url, options, (response) => {
+        if (response.statusCode === 200) {
+          resolve(response);
+        } else {
+          reject(new Error(`HTTP Error: ${response.statusCode}`));
+        }
+      }).on("error", reject);
+    });
+  }
+  async toBuffer() {
+    const response = await this.makeRequest();
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      response.on("data", (chunk) => chunks.push(chunk));
+      response.on("end", () => resolve(Buffer.concat(chunks)));
+      response.on("error", reject);
+    });
+  }
+  async toStream() {
+    const response = await this.makeRequest();
+    return response;
+  }
+};
 
 // src/utils/id-or-path.ts
 function idOrPath(str) {
@@ -128,9 +226,7 @@ function idOrPath(str) {
 }
 
 // src/models/item.ts
-var SharefileItem = class _SharefileItem {
-  #http;
-  #api;
+var SharefileItem = class _SharefileItem extends SharefileClientAPIElement {
   /**
    * Item Unique ID.
    * @type {string}
@@ -298,10 +394,10 @@ var SharefileItem = class _SharefileItem {
    * Creates an instance of SharefileItem.
    * @param {ShareFileAPIModels.Item} body - The response body from ShareFile API representing an Item.
    * @param {SharefileHTTP} http - SharefileHTTP instance used for making HTTP requests.
+   * @param {ShareFileAPI} api - ShareFileAPI instance for additional operations.
    */
   constructor(body, http, api) {
-    this.#http = http;
-    this.#api = api;
+    super(http, api);
     this.id = body.Id;
     this.Name = body.Name;
     this.Hash = body.Hash;
@@ -340,25 +436,37 @@ var SharefileItem = class _SharefileItem {
     this.url = `Items(${this.id})/`;
   }
   /**
-   *
-   *
-   * @param {boolean} [redirect=false] Redirect to download link if set to true (default), or return a DownloadSpecification if set to false
-   * @param {boolean} [includeAllVersions=false] For folder downloads only, includes old versions of files in the folder in the zip when true, current versions only when false (default)
-   * @param {boolean} [includeDeleted=false] For FINRA or other archive enabled account only, Super User can set includeDelete=true to download archived item. The default value of includeDeleted is false
-   * @return {DownloadSpecification|string} the download link or DownloadSpecification for the this item.
-   * @memberof SharefileItem
+   * Downloads the item.
+   * @param redirect - Whether to redirect to the download link.
+   * @param includeAllVersions - For folder downloads, includes old versions of files when true.
+   * @param includeDeleted - Include archived items if true (for FINRA or other archive-enabled accounts).
    */
-  async download(redirect = false, includeAllVersions = false, includeDeleted = false) {
-    return this.#http.get(
-      this.url + `Download`,
-      { redirect, includeAllVersions, includeDeleted }
-    ).then((res) => {
-      if (redirect) {
-        return res;
-      } else {
-        return new download_spec_default(res);
-      }
+  async download(redirect, includeAllVersions = false, includeDeleted = false) {
+    const res = await this._http.get(`${this.url}Download`, {
+      redirect,
+      includeAllVersions,
+      includeDeleted
     });
+    if (redirect) {
+      return res;
+    } else {
+      return new DownloadSpecification(res, this._http, this._api);
+    }
+  }
+  /**
+   * Creates a new folder as a child of the current item.
+   * @param folderName The name of the new folder
+   * @param description Optional description for the new folder
+   * @param overwrite If true, overwrites an existing folder with the same name
+   * @returns A Promise that resolves to the newly created SharefileItem
+   */
+  async createFolder(folderName, description, overwrite = false) {
+    const folderData = {
+      Name: folderName,
+      Description: description
+    };
+    const data = await this._http.post(`${this.url}Folder`, folderData, { overwrite });
+    return new _SharefileItem(data, this._http, this._api);
   }
   /**
    * Updates an Item object. Please note that for a Folder, the Name and FileName properties must be consistent. 
@@ -366,18 +474,19 @@ var SharefileItem = class _SharefileItem {
    * If both Name and FileName are provided, FileName is disregarded and Name will be used to update both properties.
    * 
    * Note: the parameters listed in the body of the request are the only parameters that can be updated through this call.
-   * @param {boolean} overwrite
+   * @param {SharefileNodeAPI.Items.UpdateItemOps_Body} ops - The properties to update.
+   * @returns {Promise<SharefileItem>} The updated SharefileItem.
    */
   async updateItem(ops) {
-    return this.#http.patch(this.url, ops).then((item) => {
-      this.Name = item.Name;
-      this.FileName = item.FileName;
-      this.Description = item.Description;
-      this.ExpirationDate = item.ExpirationDate;
-      this.Parent.Id = item.Parent.Id;
-      return this;
-    });
+    const item = await this._http.patch(this.url, ops);
+    Object.assign(this, item);
+    return this;
   }
+  /**
+  * Renames the item.
+  * @param {string} newValue - The new name for the item.
+  * @returns {Promise<SharefileItem>} The updated SharefileItem.
+  */
   async rename(newValue) {
     return this.updateItem({ Name: newValue });
   }
@@ -391,57 +500,109 @@ var SharefileItem = class _SharefileItem {
   async move(parentIdorPath) {
     let parentId = parentIdorPath;
     if (idOrPath(parentIdorPath) === "path") {
-      parentId = await this.#api.itemsByPath(parentIdorPath).then(({ id }) => id);
+      parentId = await this._api.getItem(parentIdorPath).then(({ id }) => id);
     }
     return this.updateItem({ Parent: { Id: parentId } });
   }
   /** DEPRECATED use getParent() */
   async parent() {
-    console.warn('[DEPRECATION NOTICE] The SharefileItem "parent()" method is DEPRECATED, please use "getParent()"');
+    console.warn('[DEPRECATION NOTICE] This will be removed in the next version, please use "getParent()"');
     return this.getParent();
   }
+  /**
+   * Gets the parent of this item.
+   * @returns {Promise<SharefileItem>} The parent SharefileItem.
+   */
   async getParent() {
-    return this.#http.get(this.url + `Parent`, {}).then((parent) => new _SharefileItem(parent, this.#http, this.#api));
+    const parent = await this._http.get(`${this.url}Parent`);
+    return new _SharefileItem(parent, this._http, this._api);
   }
   /**
-   * Handler for the Children navigation property of a given Item. A 302 redirection is returned if the folder is a SymbolicLink. The redirection will enumerate the children of the remote connector
-   *
-   * @return {SharefileItem[]} the list of children under the given object ID
-   * @memberof SharefileItem
+   * Gets the children of this item (if it's a folder).
+   * @param {boolean} [includeDeleted=false] - Whether to include deleted items.
+   * @returns {Promise<SharefileItem[]>} An array of child SharefileItems.
    */
   async children(includeDeleted = false) {
-    return this.#http.get(this.url + `Children`, { includeDeleted }).then(
-      ({ value }) => {
-        return value.map((item) => new _SharefileItem(item, this.#http, this.#api));
-      }
-    );
-  }
-  get token() {
-    return this.#http.access_token;
-  }
-  set token(x) {
-    this.#http.access_token = x;
+    const { value } = await this._http.get(`${this.url}Children`, { includeDeleted });
+    return value.map((item) => new _SharefileItem(item, this._http, this._api));
   }
   /**
-   * Gets first Child based on a given property.
-   */
+  * Gets the first child that matches the given property and value.
+  * @param {keyof SharefileItem} propName - The property name to match.
+  * @param {any} propVal - The value to match.
+  * @param {boolean} [includeDeleted=false] - Whether to include deleted items in the search.
+  * @returns {Promise<SharefileItem | undefined>} The matching SharefileItem, if found.
+  */
   async childBy(propName, propVal, includeDeleted = false) {
-    return this.children(includeDeleted).then((list) => {
-      return list.find((item) => item[propName] === propVal);
-    });
+    const children = await this.children(includeDeleted);
+    return children.find((item) => item[propName] === propVal);
   }
+  /**
+   * Uploads a file to this item (if it's a folder).
+   * @param {string | Buffer} contents - The file contents to upload.
+   * @param {string} filename - The name for the uploaded file.
+   * @returns {Promise<SharefileItem | undefined>} The newly created SharefileItem, if successful.
+   */
   async upload(contents, filename) {
     const ops = {
       Method: "standard",
       Raw: true,
       FileName: filename
     };
-    const url2 = this.url + `/Upload2`;
-    const uploadSpec = await this.#http.post(url2, ops).then((data) => new upload_spec_default(data));
-    return await uploadSpec.upload(contents).then(async () => this.childBy("FileName", filename));
+    const uploadSpec = await this._http.post(`${this.url}Upload2`, ops).then((res) => new upload_spec_default(res, this._http, this._api));
+    await uploadSpec.upload(contents);
+    return this.childBy("FileName", filename);
+  }
+  /**
+   * Retrieves the versions of a given Stream.
+   * @param includeDeleted Specifies whether or not expired items should be included in the feed
+   * @returns A Promise that resolves to the stream versions
+   */
+  async getStream(includeDeleted = false) {
+    return this._http.get(`${this.url}Stream`, { includeDeleted }).then((res) => res);
+  }
+  /**
+   * Removes the item
+   * @param singleversion True will delete only the specified version rather than all sibling files with the same filename
+   * @param forceSync True will block the operation from taking place asynchronously
+   * @returns A Promise that resolves when the item is deleted
+   */
+  async delete(singleversion = false, forceSync = false) {
+    return this._http.delete(this.url, { singleversion, forceSync }).then((res) => true);
+  }
+  // /**
+  //  * Copies the item to a new target Folder.
+  //  * @param targetId Target item identifier
+  //  * @param overwrite Indicates whether existing item in the target folder should be overwritten or not in case of name conflict
+  //  * @returns A Promise that resolves to the modified source object
+  //  */
+  // async copy(targetId: string, overwrite: boolean = false): Promise<SharefileItem> {
+  //   const data = await this._http.post(`${this.url}Copy`, { targetid: targetId, overwrite });
+  //   return new SharefileItem(data, this._http, this._api);
+  // }
+  /**
+   * Unlocks a locked file. This operation is only implemented in Sharepoint providers (/sp)
+   * @param message Optional message for the check-in
+   * @returns A Promise that resolves when the file is unlocked
+   */
+  async unlock(message) {
+    return this._http.post(`${this.url}CheckIn`, { message });
+  }
+  /**
+   * Locks a file. This operation is only implemented in Sharepoint providers (/sp)
+   * @returns A Promise that resolves when the file is locked
+   */
+  async lock() {
+    return this._http.post(`${this.url}CheckOut`);
+  }
+  /**
+   * Discards the existing lock on the file. This operation is only implemented in Sharepoint providers (/sp)
+   * @returns A Promise that resolves when the lock is discarded
+   */
+  async discardCheckOut() {
+    return this._http.post(`${this.url}DiscardCheckOut`);
   }
 };
-var item_default = SharefileItem;
 
 // src/http/index.ts
 var import_axios = __toESM(require("axios"));
@@ -452,119 +613,313 @@ var SharefileHTTP = class {
   constructor(auth) {
     this.auth = auth;
     this.access_token = "";
-    this.access_token_expires = /* @__PURE__ */ new Date();
+    this.access_token_expires = /* @__PURE__ */ new Date(0);
   }
   get apiPath() {
     return `https://${this.auth.subdomain}.sf-api.com/sf/v3/`;
   }
-  async _req(path, method, body = {}, query = {}) {
-    return await import_axios.default.request({
-      url: this.apiPath + path,
-      method,
-      data: body,
-      params: query,
-      headers: {
-        authorization: "Bearer " + await this.getToken()
+  async request(path, method, body, query) {
+    try {
+      const { data } = await import_axios.default.request({
+        url: this.apiPath + path,
+        method,
+        data: body,
+        params: query,
+        headers: {
+          authorization: `Bearer ${await this.getToken()}`
+        }
+      });
+      return data;
+    } catch (error) {
+      if (import_axios.default.isAxiosError(error)) {
+        const axiosError = error;
+        throw new Error(`API request failed: ${axiosError.message}`);
       }
-    }).then(({ data }) => data).catch((err) => err);
+      throw error;
+    }
   }
-  get get() {
-    return (path, params) => this._req(path, "GET", void 0, params);
-  }
-  get post() {
-    return (path, body, params) => this._req(path, "POST", body, params);
-  }
-  get patch() {
-    return (path, body, params) => this._req(path, "PATCH", body, params);
-  }
+  get = (path, params) => this.request(path, "GET", void 0, params);
+  post = (path, body, params) => this.request(path, "POST", body, params);
+  put = (path, body, params) => this.request(path, "PUT", body, params);
+  patch = (path, body, params) => this.request(path, "PATCH", body, params);
+  delete = (path, params) => this.request(path, "DELETE", void 0, params);
+  head = (path, params) => this.request(path, "HEAD", void 0, params);
   async getToken() {
     if (!this.access_token || this.isTokenExpired) {
       return this.authenticate();
-    } else {
-      return this.access_token;
     }
+    return this.access_token;
   }
-  authenticate() {
-    const config = `grant_type=password&username=${this.auth.username}&password=${this.auth.password}&client_id=${this.auth.clientId}&client_secret=${this.auth.clientSecret}`;
-    return import_axios.default.post(
-      `https://${this.auth.subdomain}.sharefile.com/oauth/token`,
-      config,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        }
-      }
-    ).then((result) => {
-      this.access_token = result.data.access_token;
-      this.access_token_expires = new Date(
-        (/* @__PURE__ */ new Date()).getTime() + result.data.expires_in
-      );
-      return result.data.access_token;
+  async authenticate() {
+    const config = new URLSearchParams({
+      grant_type: "password",
+      username: this.auth.username,
+      password: this.auth.password,
+      client_id: this.auth.clientId,
+      client_secret: this.auth.clientSecret
     });
+    try {
+      const { data } = await import_axios.default.post(
+        `https://${this.auth.subdomain}.sharefile.com/oauth/token`,
+        config.toString(),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+          }
+        }
+      );
+      this.access_token = data.access_token;
+      this.access_token_expires = new Date(Date.now() + data.expires_in * 1e3);
+      return this.access_token;
+    } catch (error) {
+      if (import_axios.default.isAxiosError(error)) {
+        const axiosError = error;
+        throw new Error(`Authentication failed: ${axiosError.message}`);
+      }
+      throw error;
+    }
   }
   get isTokenExpired() {
-    if (!this.access_token_expires) {
-      return true;
-    } else {
-      return /* @__PURE__ */ new Date() >= this.access_token_expires;
-    }
+    return Date.now() >= this.access_token_expires.getTime();
   }
 };
 
-// src/sharefile-node-api.ts
-var ShareFileAPI = class {
-  #http;
-  constructor(auth) {
-    this.#http = new SharefileHTTP(auth);
-  }
-  connect() {
-    return this.#http.authenticate();
+// src/models/search-results.ts
+var SharefileSearchResults = class _SharefileSearchResults extends SharefileClientAPIElement {
+  /**
+   * Indicates whether the results are partial due to limitations or timeouts.
+   */
+  partialResults;
+  /**
+   * The collection of search result items.
+   */
+  results;
+  /**
+   * Indicates whether the search query timed out.
+   */
+  timedOut;
+  /**
+   * The total number of results found.
+   */
+  totalCount;
+  /**
+   * Creates a new instance of SharefileSearchResults.
+   * 
+   * @param {Object} data - The raw search results data from the API.
+   * @param {SharefileHTTP} http - The HTTP client for making requests.
+   * @param {ShareFileAPI} api - The ShareFile API instance.
+   */
+  constructor(data, http, api) {
+    super(http, api);
+    this.partialResults = data.PartialResults;
+    this.timedOut = data.TimedOut;
+    this.totalCount = data.TotalCount;
+    this.results = data.Results;
   }
   /**
-   * Takes an Item ID and returns a single Item. 
+   * Gets a specific page of search results.
    * 
-   * Special Id's: [home, favorites, allshared, connectors, box, top]
-   * 
-   * > home - Return home folder. 
-   * 
-   * > favorites - Return parent favorite item; ex: .../Items(favorites)/Children to get the favorite folders. 
-   * 
-   * > allshared - Return parent Shared Folders item; ex: .../Items(allshared)/Children to get the shared folders. 
-   * 
-   * > connectors - Return parent Connectors item; ex: .../Items(connectors)/Children to get indiviual connectors. 
-   * 
-   * > box - Return the FileBox folder. 
-   * 
-   * > top - Returns the Top item; ex: .../Items(top)/Children to get the home, favorites, and shared folders as well as the connectors
-   *
-   * @param {string} id
-   * @param {string} queryParams
-   * @memberof ShareFileAPI
+   * @param {number} pageNumber - The page number to retrieve.
+   * @param {number} pageSize - The number of items per page.
+   * @returns {Promise<SharefileSearchResults>} A new instance of SharefileSearchResults with the requested page of results.
    */
-  async items(id, queryParams = null) {
-    if (id && idOrPath(id) === "path") {
-      return this.itemsByPath(id);
-    }
-    const idPath = id ? `(${id})` : "";
-    return this.#http.get(`Items` + idPath, queryParams).then((data) => new item_default(data, this.#http, this));
+  async getPage(pageNumber, pageSize) {
+    const skip = (pageNumber - 1) * pageSize;
+    const response = await this._http.get("Items/Search", {
+      $top: pageSize,
+      $skip: skip
+    });
+    return new _SharefileSearchResults(response, this._http, this._api);
   }
   /**
-   * Retrieves an item from its path. 
+   * Retrieves the full SharefileItem for each search result.
    * 
-   * The path is of format /foldername/foldername/filename
-   * 
-   * This call may redirect the client to another API provider, if the path contains a symbolic link.
-   * @param {string} path -  ex: "/Shared Folders/Some Other Folder/somefile.ext"
-   * @memberof ShareFileAPI
+   * @returns {Promise<SharefileItem[]>} An array of full SharefileItem objects.
    */
-  async itemsByPath(path) {
-    return this.#http.get("Items/ByPath", { path }).then((data) => new item_default(data, this.#http, this));
+  async getFullItems() {
+    const itemPromises = this.results.map((result) => this._api.getItem(result.Item.id));
+    return Promise.all(itemPromises);
   }
 };
-var sharefile_node_api_default = ShareFileAPI;
+var search_results_default = SharefileSearchResults;
+
+// src/sharefile-client-api.ts
+var ShareFileAPI = class {
+  _http;
+  _api;
+  /**
+   * Creates a new instance of ShareFileAPI.
+   * 
+   * @param {SharefileApiAuth} auth - Authentication details for ShareFile
+   */
+  constructor(auth) {
+    this._api = this;
+    this._http = new SharefileHTTP(auth);
+  }
+  /**
+   * Authenticates with the ShareFile API.
+   * This method should be called before making any other API requests.
+   * 
+   * @returns {Promise<string>} A promise that resolves to the access token
+   * @throws {Error} If authentication fails
+   * 
+   * @example
+   * await api.connect();
+   */
+  async connect() {
+    return this._http.authenticate();
+  }
+  /**
+   * Retrieves a ShareFile item by its ID or path.
+   * 
+   * @param {string} idOrPath - The ID or path of the item to retrieve
+   * @returns {Promise<SharefileItem>} A promise that resolves to the requested item
+   * @throws {Error} If the item retrieval fails
+   * 
+   * @example
+   * const homeFolder = await api.getItem('home');
+   * const specificFile = await api.getItem('fi123456789');
+   * const folderByPath = await api.getItem('/Personal Folders/Documents');
+   */
+  async getItem(idOrPath2) {
+    try {
+      const isPath = idOrPath2.includes("/");
+      const endpoint = isPath ? "Items/ByPath" : `Items(${idOrPath2})`;
+      const params = isPath ? { path: idOrPath2 } : void 0;
+      const data = await this._http.get(endpoint, params);
+      return new SharefileItem(data, this._http, this);
+    } catch (error) {
+      throw new Error(`Failed to retrieve item ${idOrPath2}: ${error?.message}`);
+    }
+  }
+  /**
+   * Retrieves the contents of a folder.
+   * 
+   * @param {string} folderId - The ID of the folder
+   * @param {Record<string, any>} [queryParams] - Additional query parameters
+   * @returns {Promise<SharefileItem[]>} A promise that resolves to an array of folder contents
+   * @throws {Error} If retrieval of folder contents fails
+   * 
+   * @example
+   * const folderContents = await api.getFolderContents('fo123456789');
+   * const filteredContents = await api.getFolderContents('fo123456789', { $filter: 'IsFolder eq true' });
+   */
+  async getFolderContents(folderId, queryParams = {}) {
+    try {
+      const data = await this._http.get(`Items(${folderId})/Children`, queryParams);
+      return data.value.map((item) => new SharefileItem(item, this._http, this));
+    } catch (error) {
+      throw new Error(`Failed to retrieve folder contents: ${error?.message}`);
+    }
+  }
+  /**
+   * Creates a new item in ShareFile.
+   * 
+   * @param {string} parentId - The ID of the parent folder
+   * @param {string} itemType - The type of item to create (e.g., 'Folder', 'File')
+   * @param {Record<string, any>} itemData - Data for the new item
+   * @returns {Promise<SharefileItem>} A promise that resolves to the created item
+   * @throws {Error} If item creation fails
+   * 
+   * @example
+   * const newFolder = await api.createItem('fo123456789', 'Folder', { Name: 'New Folder' });
+   * const newFile = await api.createItem('fo123456789', 'File', { Name: 'test.txt', ContentType: 'text/plain' });
+   */
+  async createItem(parentId, itemType, itemData) {
+    try {
+      const data = await this._http.post(`Items(${parentId})/${itemType}`, itemData);
+      return new SharefileItem(data, this._http, this);
+    } catch (error) {
+      throw new Error(`Failed to create item: ${error?.message}`);
+    }
+  }
+  /**
+   * Deletes an item from ShareFile.
+   * 
+   * @param {string} itemId - The ID of the item to delete
+   * @returns {Promise<void>}
+   * @throws {Error} If item deletion fails
+   * 
+   * @example
+   * await api.deleteItem('fi123456789');
+   */
+  async deleteItem(itemId) {
+    try {
+      await this._http.delete(`Items(${itemId})`);
+    } catch (error) {
+      throw new Error(`Failed to delete item: ${error?.message}`);
+    }
+  }
+  /**
+   * Searches for items in ShareFile.
+   * 
+   * @param {string} query - The search query
+   * @param {Record<string, any>} [searchParams] - Additional search parameters
+   * @returns {Promise<SharefileSearchResults>} A promise that resolves to an array of search results
+   * @throws {Error} If the search operation fails
+   * 
+   * @example
+   * const searchResults = await api.searchItems('budget');
+   * const filteredSearch = await api.searchItems('report', { $filter: 'CreationDate gt 2023-01-01' });
+   */
+  async searchItems(query, searchParams = {}) {
+    try {
+      const data = await this._http.get("Items/Search", { ...searchParams, query });
+      return new search_results_default(data, this._http, this._api);
+    } catch (error) {
+      throw new Error(`Search failed: ${error?.message}`);
+    }
+  }
+  /**
+   * Returns the underlying HTTP client for advanced usage.
+   * 
+   * @returns {SharefileHTTP} The HTTP client instance
+   * 
+   * @example
+   * const httpClient = api.getHttpClient();
+   * const customData = await httpClient.get('CustomEndpoint');
+   */
+  getHttpClient() {
+    return this._http;
+  }
+  async items(id, queryParams = {}) {
+    console.warn("Deprecated: The items() method is deprecated. Use getItem() instead.");
+    return this.getItem(id || "");
+  }
+  async itemsByPath(path) {
+    console.warn("Deprecated: The itemsByPath() method is deprecated. Use getItem() instead.");
+    return this.getItem(path);
+  }
+  async createFolder(parentId, folderName) {
+    console.warn("Deprecated: The createFolder() method is deprecated. Use createItem() instead.");
+    return this.createItem(parentId, "Folder", { Name: folderName });
+  }
+};
+__decorateClass([
+  Deprecated("Use getItem() instead")
+], ShareFileAPI.prototype, "items", 1);
+__decorateClass([
+  Deprecated("Use getItem() instead")
+], ShareFileAPI.prototype, "itemsByPath", 1);
+__decorateClass([
+  Deprecated("Use createItem() instead")
+], ShareFileAPI.prototype, "createFolder", 1);
+function Deprecated(message) {
+  return (target, propertyKey, descriptor) => {
+    if (descriptor) {
+      const original = descriptor.value;
+      descriptor.value = function(...args) {
+        console.warn(`Deprecated: ${propertyKey} is deprecated. ${message}`);
+        return original.apply(this, args);
+      };
+    } else {
+      console.warn(`Deprecated: ${propertyKey} is deprecated. ${message}`);
+    }
+  };
+}
 
 // src/index.ts
-var src_default = sharefile_node_api_default;
+var src_default = ShareFileAPI;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ShareFileAPI

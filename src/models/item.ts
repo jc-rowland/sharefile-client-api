@@ -1,218 +1,220 @@
-
-import {ShareFileResponse} from '../types/sharefileresponse'
+/**
+ * @memberof ShareFile.Api.Models.Item
+ * @link https://api.sharefile.com/docs/resource?name=ShareFile.Api.Models.Item
+ */
 import { ShareFileAPIModels } from '../types/sharefile.api.models'
 import SharefileHTTP from '../http'
 import UploadSpecification from './upload-spec'
 import DownloadSpecification from './download-spec'
-import { SharefileNodeAPI } from '../types/sharefile-node-api'
+import { SharefileNodeAPI } from '../types/sharefile-client-api'
 import idOrPath from '../utils/id-or-path'
-import ShareFileAPI from '../sharefile-node-api'
+import ShareFileAPI from '../sharefile-client-api'
+import type { HttpResponse_DownloadSpecification } from './download-spec'
+import SharefileClientAPIElement from './api-element'
 
-class SharefileItem {
-  #http: SharefileHTTP;
-  #api: ShareFileAPI;
+export default class SharefileItem extends SharefileClientAPIElement {
   
   /**
    * Item Unique ID.
    * @type {string}
    */
-  id: string;
+  readonly id: string;
 
   /**
    * Item Name.
    * @type {string}
    */
-  Name: string;
+  readonly Name: string;
 
-  Hash: string;
+  readonly Hash: string;
 
   /**
    * Item File Name. ShareFile allows Items to have different Display and File names:
    * display names are shown during client navigation, while file names are used when the item is downloaded.
    * @type {string}
    */
-  FileName: string;
+  readonly FileName: string;
 
   /**
    * User that Created this Item.
    */
-  Creator: ShareFileAPIModels.User|undefined;
+  readonly Creator?: ShareFileAPIModels.User;
 
   /**
    * Parent container of the Item. A container is usually a Folder object, with a few exceptions - the "Account" is the container of top-level folders.
    */
-  Parent: {Id:string};
+  readonly Parent: {Id:string};
 
   /**
    * List of Access Controls for this Item. This is not the effective ACL on the Item, just the ACLs directly attached to this Item. Use the "Info" reference to retrieve effective ACL.
    */
-  AccessControls: ShareFileAPIModels.AccessControl[] | undefined;
+  readonly AccessControls?: ShareFileAPIModels.AccessControl[];
 
   /**
    * The Storage Zone that contains this Item.
    */
-  Zone: ShareFileAPIModels.Zone | undefined;
+  readonly Zone?: ShareFileAPIModels.Zone;
 
   /**
    * Item Creation Date.
    */
-  CreationDate: Date;
+  readonly CreationDate: Date;
 
   /**
    * The last modified date of this item and all of its children, recursively.
    * This parameter is not supported in all ShareFile providers - it is always set in sharefile.com hosting, but not in some StorageZone connectors. The Capability object of the provider indicates whether the provider supports this field or not.
    */
-  ProgenyEditDate: Date;
+  readonly ProgenyEditDate: Date;
 
   /**
    * Client device filesystem Created Date of this Item.
    */
-  ClientCreatedDate?: Date;
+  readonly ClientCreatedDate?: Date;
 
   /**
    * Client device filesystem last Modified Date of this Item.
    */
-  ClientModifiedDate?: Date;
+  readonly ClientModifiedDate?: Date;
 
   /**
    * Defines the Retention Policy for this Item. After this date, the item is automatically moved to recycle bin.
    */
-  ExpirationDate: Date;
+  readonly ExpirationDate: Date;
 
   /**
    * Item description.
    */
-  Description: string;
+  readonly Description: string;
 
   /**
    * Disk space limit for the Item. Define the maximum amount of bytes that this container can hold at any given time.
    */
-  DiskSpaceLimit: number;
+  readonly DiskSpaceLimit: number;
 
   /**
    * Defines whether the Item has a 'hidden' flag.
    */
-  IsHidden: boolean;
+  readonly IsHidden: boolean;
 
   /**
    * Bandwidth limit for the Item. Define the maximum amount of bytes that can be added and retrieved from this item.
    */
-  BandwidthLimitInMB: number;
+  readonly BandwidthLimitInMB: number;
 
   /**
    * User Owner of this Item.
    */
-  Owner?: ShareFileAPIModels.User;
+  readonly Owner?: ShareFileAPIModels.User;
 
   /**
    * ShareFile Account containing this item.
    */
-  Account?: ShareFileAPIModels.Account;
+  readonly Account?: ShareFileAPIModels.Account;
 
   /**
    * Item size in Kilobytes. For containers, this field includes all children sizes, recursively.
    */
-  FileSizeInKB: number;
+  readonly FileSizeInKB: number;
 
   /**
    * Contains an ItemID path, separated by /, from the virtual root to this given file. Example /accountID/folderID/folderID/itemID.
    */
-  Path: string;
+  readonly Path: string;
 
   /**
    * First name of the user that created this item.
    */
-  CreatorFirstName: string;
+  readonly CreatorFirstName: string;
 
   /**
    * Last name of the user that created this item.
    */
-  CreatorLastName: string;
+  readonly CreatorLastName: string;
 
   /**
    * Amount of days until this item expires (see ExpirationDate).
    */
-  ExpirationDays: number;
+  readonly ExpirationDays: number;
 
   /**
    * Item size in bytes. For containers, this field will include all children sizes, recursively.
    */
-  FileSizeBytes: number;
+  readonly FileSizeBytes: number;
 
   /**
    * Indicates whether a preview image is available for this Item. ShareFile.com always creates previews for known file types, although there is a delay from the file creation until the preview is available. Some Storage Zones Providers do not create previews, depending on version and deployment options. Previews are not created for unknown file types.
    */
-  PreviewStatus?: any;
+  readonly PreviewStatus?: any;
 
   /**
    * Indicates a list of PreviewPlatforms supported for this item.
    */
-  PreviewPlatformsSupported?: any;
+  readonly PreviewPlatformsSupported?: any;
 
   /**
    * Indicates a list of EditingPlatforms supported for this item.
    */
-  EditingPlatformsSupported: any;
+  readonly EditingPlatformsSupported: any;
 
   /**
    * Indicates that the Item is pending for removal. At the next execution of the Cleanup process, the data blob associated with this item will be removed. This parameter is not used for certain Storage Zone Providers. For example, in CIFS and SharePoint connectors, removals are performed immediately. The Capability "HasRecycleBin" indicates whether this field is used or not in the provider.
    */
-  HasPendingDeletion: boolean;
+  readonly HasPendingDeletion: boolean;
 
   /**
    * Folder Template reference. If set, it indicates that this Item was created from a Folder Template. Modifications to the folder template are propagated to the associated items. The Capability FolderTemplate indicates whether the provider supports Folder Templates.
    */
-  AssociatedFolderTemplateID: string;
+  readonly AssociatedFolderTemplateID: string;
 
   /**
    * Indicates whether the item is owned by a Folder Template. If set, it indicates that this Item was created from a Folder Template. Modifications to the folder template are propagated to the associated items. The Capability FolderTemplate indicates whether the provider supports Folder Templates.
    */
-  IsTemplateOwned: boolean;
+  readonly IsTemplateOwned: boolean;
 
   /**
    * Identifier for the Item stream. An Item represents a single version of a file system object. The stream identifies all versions of the same file system object. For example, when users upload or modify an existing file, a new Item is created with the same StreamID. All Item enumerations return only the latest version of a given stream. You can access the previous versions of a file using the StreamID reference.
    */
-  StreamID: string;
+  readonly StreamID: string;
 
   /**
    * Short version of the item's creator's name. E.g., J. Doe.
    */
-  CreatorNameShort: string;
+  readonly CreatorNameShort: string;
 
   /**
    * Specifies whether there are other versions of this item. Not all providers support file versioning. The Capability FileVersioning indicates whether the provider supports file versions.
    */
-  HasMultipleVersions: boolean;
+  readonly HasMultipleVersions: boolean;
 
   /**
    * Specifies whether or not an Item has a pending async operation.
    */
-  HasPendingAsyncOp: boolean;
+  readonly HasPendingAsyncOp: boolean;
 
   /**
    * Bitmask of operations allowed on a given Item. More granular (and often accurate, as it takes into account capabilities, account settings, file lock status, etc.) than what's on ItemInfo object.
    */
-  ItemOperations?: any;
+  readonly ItemOperations?: any;
 
   /**
    * List of custom metadata objects associated with this item.
    */
-  Metadata?: any;
+  readonly Metadata?: any;
 
   /**
    * List of external statuses associated with this Item.
    */
-  Statuses?: any;
+  readonly Statuses?: any;
 
   /**
    * Favorite item object associated with the item.
    */
-  Favorite?: any;
+  readonly Favorite?: any;
 
   /**
    * Item Path using Folder names.
    */
-  SemanticPath?: string;
+  readonly SemanticPath?: string;
 
   url: string;
 
@@ -220,10 +222,11 @@ class SharefileItem {
    * Creates an instance of SharefileItem.
    * @param {ShareFileAPIModels.Item} body - The response body from ShareFile API representing an Item.
    * @param {SharefileHTTP} http - SharefileHTTP instance used for making HTTP requests.
+   * @param {ShareFileAPI} api - ShareFileAPI instance for additional operations.
    */
   constructor(body: ShareFileAPIModels.Item, http:SharefileHTTP, api:ShareFileAPI) {
-      this.#http                      = http
-      this.#api                       = api
+      super(http,api)
+
       this.id                         = body.Id
       this.Name                       = body.Name
       this.Hash                       = body.Hash
@@ -264,32 +267,63 @@ class SharefileItem {
 
   }
 
+ 
   /**
-   *
-   *
-   * @param {boolean} [redirect=false] Redirect to download link if set to true (default), or return a DownloadSpecification if set to false
-   * @param {boolean} [includeAllVersions=false] For folder downloads only, includes old versions of files in the folder in the zip when true, current versions only when false (default)
-   * @param {boolean} [includeDeleted=false] For FINRA or other archive enabled account only, Super User can set includeDelete=true to download archived item. The default value of includeDeleted is false
-   * @return {DownloadSpecification|string} the download link or DownloadSpecification for the this item.
-   * @memberof SharefileItem
+   * Downloads the item and returns a download link.
+   * @param redirect - Whether to redirect to the download link.
+   * @param includeAllVersions - For folder downloads, includes old versions of files when true.
+   * @param includeDeleted - Include archived items if true (for FINRA or other archive-enabled accounts).
+   */
+  download(redirect: true, includeAllVersions?: boolean, includeDeleted?: boolean): Promise<string>;
+
+  /**
+   * Downloads the item and returns a DownloadSpecification.
+   * @param redirect - Whether to redirect to the download link.
+   * @param includeAllVersions - For folder downloads, includes old versions of files when true.
+   * @param includeDeleted - Include archived items if true (for FINRA or other archive-enabled accounts).
+   */
+  download(redirect: false, includeAllVersions?: boolean, includeDeleted?: boolean): Promise<DownloadSpecification>;
+
+  /**
+   * Downloads the item.
+   * @param redirect - Whether to redirect to the download link.
+   * @param includeAllVersions - For folder downloads, includes old versions of files when true.
+   * @param includeDeleted - Include archived items if true (for FINRA or other archive-enabled accounts).
    */
   async download(
-    redirect = false,
+    redirect: boolean,
     includeAllVersions = false,
     includeDeleted = false
-  ) {
-    return this.#http
-      .get(
-        this.url +
-          `Download`,{redirect, includeAllVersions, includeDeleted}
-      )
-      .then((res) => {
-        if (redirect) {
-          return res;
-        } else {
-          return new DownloadSpecification(res);
-        }
-      });
+  ): Promise<string | DownloadSpecification> {
+    const res = await this._http.get<string | HttpResponse_DownloadSpecification>(`${this.url}Download`, {
+      redirect,
+      includeAllVersions,
+      includeDeleted
+    });
+
+    if (redirect) {
+      return res as string;
+    } else {
+      return new DownloadSpecification(res as HttpResponse_DownloadSpecification,this._http,this._api);
+    }
+  }
+
+
+  /**
+   * Creates a new folder as a child of the current item.
+   * @param folderName The name of the new folder
+   * @param description Optional description for the new folder
+   * @param overwrite If true, overwrites an existing folder with the same name
+   * @returns A Promise that resolves to the newly created SharefileItem
+   */
+  async createFolder(folderName: string, description?: string, overwrite: boolean = false): Promise<SharefileItem> {
+    const folderData = {
+      Name: folderName,
+      Description: description
+    };
+
+    const data = await this._http.post<ShareFileAPIModels.Item>(`${this.url}Folder`, folderData, { overwrite });
+    return new SharefileItem(data, this._http, this._api);
   }
 
   /**
@@ -298,23 +332,22 @@ class SharefileItem {
    * If both Name and FileName are provided, FileName is disregarded and Name will be used to update both properties.
    * 
    * Note: the parameters listed in the body of the request are the only parameters that can be updated through this call.
-   * @param {boolean} overwrite
+   * @param {SharefileNodeAPI.Items.UpdateItemOps_Body} ops - The properties to update.
+   * @returns {Promise<SharefileItem>} The updated SharefileItem.
    */
-  async updateItem(ops:SharefileNodeAPI.Items.UpdateItemOps_Body) {
-    return this.#http
-    .patch( this.url,ops )
-    .then((item:ShareFileAPIModels.Item) => {
-      this.Name = item.Name;
-      this.FileName = item.FileName;
-      this.Description = item.Description;
-      this.ExpirationDate = item.ExpirationDate;
-      this.Parent.Id = item.Parent.Id;
-      return this
-    });
+  async updateItem(ops: SharefileNodeAPI.Items.UpdateItemOps_Body): Promise<SharefileItem> {
+    const item = await this._http.patch<ShareFileAPIModels.Item>(this.url, ops);
+    Object.assign(this, item);
+    return this;
   }
 
-  async rename(newValue:string){
-    return this.updateItem({Name:newValue})
+   /**
+   * Renames the item.
+   * @param {string} newValue - The new name for the item.
+   * @returns {Promise<SharefileItem>} The updated SharefileItem.
+   */
+   async rename(newValue: string): Promise<SharefileItem> {
+    return this.updateItem({ Name: newValue });
   }
 
 /**
@@ -327,69 +360,121 @@ class SharefileItem {
 async move(parentIdorPath:string){
   let parentId = parentIdorPath;
   if(idOrPath(parentIdorPath)==='path'){
-    parentId = await this.#api.itemsByPath(parentIdorPath).then(({id})=>id)
+    parentId = await this._api.getItem(parentIdorPath).then(({id})=>id)
   }
   return this.updateItem({Parent:{Id:parentId}})
 }
 
   /** DEPRECATED use getParent() */
   async parent(){
-    console.warn('[DEPRECATION NOTICE] The SharefileItem "parent()" method is DEPRECATED, please use "getParent()"')
+    console.warn('[DEPRECATION NOTICE] This will be removed in the next version, please use "getParent()"')
     return this.getParent()
   }
 
-  async getParent(){
-    return this.#http
-      .get( this.url + `Parent`,{} )
-      .then((parent) => new SharefileItem(parent, this.#http, this.#api));
-  
+  /**
+   * Gets the parent of this item.
+   * @returns {Promise<SharefileItem>} The parent SharefileItem.
+   */
+  async getParent(): Promise<SharefileItem> {
+    const parent = await this._http.get<ShareFileAPIModels.Item>(`${this.url}Parent`);
+    return new SharefileItem(parent, this._http, this._api);
   }
 
   /**
-   * Handler for the Children navigation property of a given Item. A 302 redirection is returned if the folder is a SymbolicLink. The redirection will enumerate the children of the remote connector
-   *
-   * @return {SharefileItem[]} the list of children under the given object ID
-   * @memberof SharefileItem
+   * Gets the children of this item (if it's a folder).
+   * @param {boolean} [includeDeleted=false] - Whether to include deleted items.
+   * @returns {Promise<SharefileItem[]>} An array of child SharefileItems.
    */
-  async children(includeDeleted:boolean = false) {
-    return this.#http.get(this.url+`Children`,{includeDeleted})
-      .then(({value}:{value:ShareFileAPIModels.Item[]}) => {
-        return value.map((item:ShareFileAPIModels.Item) => new SharefileItem(item, this.#http, this.#api))
-
-      }
-      );
-  }
-
-  get token(){
-    return this.#http.access_token
-  }
-
-  set token(x){
-    this.#http.access_token = x
+  async children(includeDeleted = false): Promise<SharefileItem[]> {
+    const { value } = await this._http.get<{ value: ShareFileAPIModels.Item[] }>(`${this.url}Children`, { includeDeleted });
+    return value.map(item => new SharefileItem(item, this._http, this._api));
   }
   
 
-  /**
-   * Gets first Child based on a given property.
+   /**
+   * Gets the first child that matches the given property and value.
+   * @param {keyof SharefileItem} propName - The property name to match.
+   * @param {any} propVal - The value to match.
+   * @param {boolean} [includeDeleted=false] - Whether to include deleted items in the search.
+   * @returns {Promise<SharefileItem | undefined>} The matching SharefileItem, if found.
    */
-  async childBy(propName:keyof SharefileItem, propVal:any, includeDeleted = false) {
-    return this.children(includeDeleted).then((list) => {
-      return list.find((item) => item[propName] === propVal);
-    });
+   async childBy(propName: keyof SharefileItem, propVal: any, includeDeleted = false): Promise<SharefileItem | undefined> {
+    const children = await this.children(includeDeleted);
+    return children.find(item => item[propName] === propVal);
   }
 
-async upload(contents:string|Buffer,filename:string){
-  const ops = {
-    Method: "standard",
-    Raw:true,
-    FileName: filename
+  /**
+   * Uploads a file to this item (if it's a folder).
+   * @param {string | Buffer} contents - The file contents to upload.
+   * @param {string} filename - The name for the uploaded file.
+   * @returns {Promise<SharefileItem | undefined>} The newly created SharefileItem, if successful.
+   */
+  async upload(contents: string | Buffer, filename: string): Promise<SharefileItem | undefined> {
+    const ops = {
+      Method: "standard",
+      Raw: true,
+      FileName: filename
+    };
+    const uploadSpec = await this._http.post<UploadSpecification>(`${this.url}Upload2`, ops).then(res=>new UploadSpecification(res,this._http,this._api));
+    await uploadSpec.upload(contents);
+    return this.childBy('FileName', filename);
   }
-  const url = this.url + `/Upload2`;
 
-  const uploadSpec = await this.#http.post(url,ops).then((data)=>new UploadSpecification(data));
 
-  return await uploadSpec.upload(contents).then(async ()=>this.childBy('FileName',filename));
+  
+  /**
+   * Retrieves the versions of a given Stream.
+   * @param includeDeleted Specifies whether or not expired items should be included in the feed
+   * @returns A Promise that resolves to the stream versions
+   */
+  async getStream(includeDeleted: boolean = false): Promise<ShareFileAPIModels.Item[]> {
+    return this._http.get<ShareFileAPIModels.Item[]>(`${this.url}Stream`, { includeDeleted })
+      .then((res) => res);
+  }
+
+  /**
+   * Removes the item
+   * @param singleversion True will delete only the specified version rather than all sibling files with the same filename
+   * @param forceSync True will block the operation from taking place asynchronously
+   * @returns A Promise that resolves when the item is deleted
+   */
+  async delete(singleversion: boolean = false, forceSync: boolean = false): Promise<true> {
+    return this._http.delete(this.url, { singleversion, forceSync }).then(res=>true);
+  }
+
+  // /**
+  //  * Copies the item to a new target Folder.
+  //  * @param targetId Target item identifier
+  //  * @param overwrite Indicates whether existing item in the target folder should be overwritten or not in case of name conflict
+  //  * @returns A Promise that resolves to the modified source object
+  //  */
+  // async copy(targetId: string, overwrite: boolean = false): Promise<SharefileItem> {
+  //   const data = await this._http.post(`${this.url}Copy`, { targetid: targetId, overwrite });
+  //   return new SharefileItem(data, this._http, this._api);
+  // }
+
+  /**
+   * Unlocks a locked file. This operation is only implemented in Sharepoint providers (/sp)
+   * @param message Optional message for the check-in
+   * @returns A Promise that resolves when the file is unlocked
+   */
+  async unlock(message?: string): Promise<void> {
+    return this._http.post(`${this.url}CheckIn`, { message });
+  }
+
+  /**
+   * Locks a file. This operation is only implemented in Sharepoint providers (/sp)
+   * @returns A Promise that resolves when the file is locked
+   */
+  async lock(): Promise<void> {
+    return this._http.post(`${this.url}CheckOut`);
+  }
+
+  /**
+   * Discards the existing lock on the file. This operation is only implemented in Sharepoint providers (/sp)
+   * @returns A Promise that resolves when the lock is discarded
+   */
+  async discardCheckOut(): Promise<void> {
+    return this._http.post(`${this.url}DiscardCheckOut`);
+  }
 }
-}
-
-export default  SharefileItem
